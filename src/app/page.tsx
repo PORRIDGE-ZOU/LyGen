@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import * as fabric from "fabric";
 import { FabricObject, Canvas } from "fabric";
-import { Box, Button, Container, Typography } from "@mui/material";
+import { Box, Button, Container, Typography, TextField } from "@mui/material";
 import anime from "animejs/lib/anime.es.js";
+import { AudioUploadButton, TextUploadButton } from "@/components/FileUploader";
 
 declare module "fabric" {
   interface Canvas {
@@ -65,9 +66,15 @@ var props = [
 const p_keyframes: PKeyframe[] = [];
 const allObjects: fabric.Object[] = [];
 let paused = false;
+let currentIndex = 0;
+let globalDuration = 0;
 
 const App = () => {
   const [canvas, setCanvas] = useState<fabric.Canvas>();
+  const [videoDuration, setVideoDuration] = useState<number>(10000);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [testStart, setTestStart] = useState<number>(2000);
+  const [testEnd, setTestEnd] = useState<number>(5000);
 
   useEffect(() => {
     const canvas = new fabric.Canvas("canvas", {
@@ -123,6 +130,35 @@ const App = () => {
     };
   }, []);
 
+  const onChangeVideoDuration = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setVideoDuration(parseInt(event.target.value));
+  };
+
+  const onAudioUpload = (file: File) => {
+    if (!file) {
+      console.error("[onAudioUpload] file is undefined");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!e.target || !e.target.result) {
+        return;
+      }
+      const audio = new Audio(e.target.result);
+      audio.onloadedmetadata = () => {
+        let durationWhole = Math.ceil(audio.duration);
+        setVideoDuration(durationWhole * 1000);
+      };
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onLyricsUpload = (file: File) => {
+    lyricsParse(file, canvas!);
+  };
+
   return (
     <Container
       disableGutters={true}
@@ -149,13 +185,86 @@ const App = () => {
           >
             New Text Box
           </Button>
+          <TextField
+            id="outlined-number"
+            label="Video Duration (in ms)"
+            type="number"
+            defaultValue={10000}
+            value={videoDuration}
+            InputLabelProps={{
+              shrink: true,
+            }}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              onChangeVideoDuration(event);
+            }}
+          />
           <Button
             onClick={() => {
               paused = false;
-              animate(true, 0, canvas!, allObjects, p_keyframes, 10000);
+              animate(
+                true,
+                0,
+                canvas!,
+                allObjects,
+                p_keyframes,
+                videoDuration,
+                (time) => {
+                  // clamp time to int
+                  time = Math.floor(time);
+                  setCurrentTime(time);
+                }
+              );
             }}
           >
             Play
+          </Button>
+          <Typography>Current Time: {currentTime}</Typography>
+          <AudioUploadButton onAudioUpload={onAudioUpload} />
+          <TextUploadButton onLyricsUpload={onLyricsUpload} />
+          <TextField
+            id="outlined-number"
+            label="TestStartTime"
+            type="number"
+            defaultValue={2000}
+            value={testStart}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setTestStart(parseInt(event.target.value));
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <TextField
+            id="outlined-number"
+            label="TestEndTime"
+            type="number"
+            defaultValue={5000}
+            value={testEnd}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setTestEnd(parseInt(event.target.value));
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <Button
+            onClick={() =>
+              newTextbox(
+                30,
+                700,
+                "Hello World",
+                960,
+                540,
+                200,
+                true,
+                "Inter",
+                canvas,
+                testStart,
+                testEnd
+              )
+            }
+          >
+            TestTextBox
           </Button>
         </Box>
         <Box width="100%">
@@ -198,7 +307,9 @@ const newTextbox = (
   width: number,
   center: boolean,
   font: string,
-  canvas?: fabric.Canvas
+  canvas?: fabric.Canvas,
+  startTime?: number,
+  endTime?: number
 ) => {
   console.log("[newTextbox] called");
   var newtext = new fabric.Textbox(text, {
@@ -227,7 +338,7 @@ const newTextbox = (
       fontweight + " " + fontsize + "px Inter",
       canvas
     ),
-    id: "Text" + 0, // 0 FOR NOW -- George
+    id: "Text" + currentIndex++, // 0 FOR NOW -- George
     // shadow: {
     //   color: "#000",
     //   offsetX: 0,
@@ -242,6 +353,11 @@ const newTextbox = (
     mb: false,
   });
   canvas?.add(newtext);
+  if (startTime && endTime) {
+    newtext.set("notnew", true);
+    newtext.set("starttime", startTime);
+    newtext.set("endtime", endTime);
+  }
   // Attempt Fix for text top and left not correctly being set to center: move
   // setactiveobject to the end of function. --GEORGE
   // THIS IS NOT FIXING THE ISSUE. DAMN. --GEORGE
@@ -287,7 +403,8 @@ async function animate(
   canvas: fabric.Canvas,
   objects: fabric.Object[],
   p_keyframes: PKeyframe[],
-  duration: number
+  duration: number,
+  onTimeChange?: (time: number) => void
 ) {
   // anime.speed = 1;
 
@@ -489,6 +606,9 @@ async function animate(
         update: () => {
           if (!paused) {
             currenttime = animation.value;
+            if (onTimeChange) {
+              onTimeChange(currenttime);
+            }
             // console.log(
             //   "[animate] animation update! current time: " + currenttime
             // );
@@ -736,7 +856,7 @@ function newLayer(
       ? newObject.get("starttime")
       : currenttime;
     const end = newObject.get("notnew")
-      ? duration - newObject.get("starttime")
+      ? newObject.get("endtime")
       : duration - currenttime;
 
     console.log("[newLayer] start and end" + start + " " + end);
@@ -749,6 +869,7 @@ function newLayer(
       object: newObject,
       id: newObject.get("id"),
     });
+    console.log("[newLayer] all p_keyframes: " + p_keyframes);
   }
 
   // Render the layer
@@ -817,4 +938,79 @@ function newLayer(
   console.log("[newLayer] layer created, newLayer() ends");
 }
 
+class LyricsLine {
+  text = "DEFAULT LINE (Something is wrong)";
+  timeString = "00:00.00";
+  timeInSeconds = 0;
+  constructor(text: string, timeString: string) {
+    this.text = text;
+    this.timeString = timeString;
+    this.timeInSeconds = this.convertTimeToSeconds(timeString);
+  }
+  getText() {
+    return this.text;
+  }
+  getTimeInSeconds() {
+    return this.timeInSeconds;
+  }
+  convertTimeToSeconds(timeString: string) {
+    var minutes = parseInt(timeString.split(":")[0]);
+    var seconds = parseInt(timeString.split(":")[1].split(".")[0]);
+    var milliseconds = parseInt(timeString.split(":")[1].split(".")[1]);
+    var result = minutes * 60 + seconds + milliseconds / 100;
+    console.log("conver time to seconds: " + result);
+    return minutes * 60 + seconds + milliseconds / 100;
+  }
+}
+function lyricsParse(file: File, canvas: fabric.Canvas) {
+  var reader = new FileReader();
+  reader.readAsText(file);
+  reader.onload = function (e) {
+    // alert file name
+    console.log(reader.result);
+    var lyrics = reader.result;
+    var lyricsArray = (lyrics as string).split("\n");
+    var lyricsObjects: LyricsLine[] = [];
+    lyricsArray.forEach(function (line) {
+      var time = line.split("]")[0].split("[")[1];
+      // text should start from the second character, because the first one is space
+      var text = line.split("]")[1].substring(1);
+      var lyrics = new LyricsLine(text, time);
+      lyricsObjects.push(lyrics);
+    });
+    console.log(lyricsObjects);
+
+    lyricsObjects.forEach(function (line, index) {
+      // duration should be the next index's time - this time
+      // var duration = 0;
+      // duration = lyricsObjects[index + 1] ?
+      //   (lyricsObjects[index + 1].timeInSeconds - line.timeInSeconds) * 1000 :
+      //   5000; // HOW TO SET DEFAULT? --GEORGE
+      var endTime = lyricsObjects[index + 1]
+        ? lyricsObjects[index + 1].timeInSeconds * 1000
+        : line.getTimeInSeconds() * 1000 + 5000;
+
+      console.log(
+        "[lyricsParse] start and endTime: " +
+          line.timeInSeconds * 1000 +
+          " " +
+          endTime
+      );
+      newTextbox(
+        30,
+        700,
+        line.getText(),
+        960,
+        540,
+        200,
+        true,
+        "Inter",
+        canvas,
+        line.getTimeInSeconds() * 1000,
+        endTime
+      );
+      // canvas.renderAll();
+    });
+  };
+}
 export default App;
