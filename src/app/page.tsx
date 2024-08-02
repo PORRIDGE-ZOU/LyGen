@@ -8,6 +8,8 @@ import anime from "animejs/lib/anime.es.js";
 import { PKeyframe, LyricsLine } from "../components/types";
 import { AudioUploadButton, TextUploadButton } from "@/components/FileUploader";
 import { props, p_keyframes, allObjects } from "@/components/globals";
+import ColorPickerInput from "@/components/ColorPickerInput";
+import { set } from "animejs";
 
 let paused = false;
 let currentIndex = 0;
@@ -21,6 +23,10 @@ const App = () => {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [testStart, setTestStart] = useState<number>(2000);
   const [testEnd, setTestEnd] = useState<number>(5000);
+  const [filltext, setFillText] = useState("#ffffff");
+  const [fillcolor, setFillColor] = useState("#ffffff");
+  const [activeXPos, setActiveXPos] = useState<number>(0);
+  const [activeYPos, setActiveYPos] = useState<number>(0);
 
   useEffect(() => {
     const canvas = new fabric.Canvas("canvas", {
@@ -67,6 +73,7 @@ const App = () => {
     };
 
     canvas.renderAll();
+    canvasSetup(canvas);
     setCanvas(canvas);
     console.log("[App] canvas created and set");
 
@@ -75,6 +82,48 @@ const App = () => {
       canvas.dispose();
     };
   }, []);
+
+  function canvasSetup(canvas: fabric.Canvas) {
+    canvas.on("selection:created", (e) => {
+      console.log("[canvasSetup] selection created");
+      let active = canvas.getActiveObject();
+      console.log("[canvasSetup] active object: ", active);
+      let x = active?.get("left");
+      let y = active?.get("top");
+      setActiveXPos(x!);
+      setActiveYPos(y!);
+      let fill = active?.get("fill");
+      setFillColor(fill!);
+      setFillText(fill!);
+    });
+  }
+
+  function onPositionChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+    pos: string
+  ) {
+    let active = canvas?.getActiveObject();
+    if (pos === "x") {
+      setActiveXPos(parseInt(event.target.value));
+      active?.set({ left: parseInt(event.target.value) });
+    } else {
+      setActiveYPos(parseInt(event.target.value));
+      active?.set({ top: parseInt(event.target.value) });
+    }
+    canvas?.renderAll();
+    canvas?.discardActiveObject();
+    reselect(active!, canvas!);
+  }
+
+  function onColorChange(newcolor: string) {
+    let active = canvas?.getActiveObject();
+    active?.set({ fill: newcolor });
+    canvas?.renderAll();
+    canvas?.discardActiveObject();
+    reselect(active!, canvas!);
+    setFillColor(newcolor);
+    setFillText(newcolor);
+  }
 
   const onChangeVideoDuration = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -229,12 +278,74 @@ const App = () => {
           <canvas id="canvas" />
         </Box>
         <Box width="25%">
-          <Typography variant="h6">Right Column</Typography>
+          <Typography variant="h6">Information</Typography>
+          <TextField
+            id="textXPos"
+            label="XPos"
+            type="number"
+            value={activeXPos}
+            defaultValue={0}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              onPositionChange(event, "x");
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <TextField
+            id="textYPos"
+            label="YPos"
+            type="number"
+            value={activeYPos}
+            defaultValue={0}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              onPositionChange(event, "y");
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <ColorPickerInput
+            color={fillcolor}
+            setColor={onColorChange}
+            text={filltext}
+            setText={onColorChange}
+          />
         </Box>
       </Box>
     </Container>
   );
 };
+
+// Reselect
+function reselect(selection: FabricObject, canvas: fabric.Canvas) {
+  if (selection.type == "activeSelection") {
+    var objs = [];
+    for (let so of selection._objects) {
+      for (let obj of canvas.getObjects()) {
+        if (obj.get("id") === so.get("id")) {
+          objs.push(obj);
+          break;
+        }
+      }
+    }
+    canvas.setActiveObject(
+      new fabric.ActiveSelection(objs, {
+        canvas: canvas,
+      })
+    );
+    canvas.renderAll();
+  } else {
+    if (selection.get("type") == "group") {
+      canvas.setActiveObject(
+        canvas.getItemById(selection.get("id")) as FabricObject
+      );
+    } else {
+      canvas.setActiveObject(selection);
+    }
+    canvas.renderAll();
+  }
+}
 
 const addRect = (canvas?: fabric.Canvas) => {
   const rect = new fabric.Rect({
@@ -276,12 +387,12 @@ const newTextbox = (
     originX: "center",
     originY: "center",
     fontFamily: "Inter",
-    fill: "#fff",
+    fill: "#ffffff",
     fontSize: fontsize,
     fontWeight: fontweight,
     textAlign: "center",
     cursorWidth: 1,
-    stroke: "#fff",
+    stroke: "#ffffff",
     strokeWidth: 0,
     cursorDuration: 1,
     paintFirst: "stroke",
