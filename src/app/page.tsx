@@ -12,10 +12,12 @@ import { props, p_keyframes, allObjects } from "@/components/globals";
 let paused = false;
 let currentIndex = 0;
 let globalDuration = 0;
+let globalCurrentTime = 0;
 
 const App = () => {
   const [canvas, setCanvas] = useState<fabric.Canvas>();
   const [videoDuration, setVideoDuration] = useState<number>(10000);
+  // this currentTime is ONLY used for displaying now.
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [testStart, setTestStart] = useState<number>(2000);
   const [testEnd, setTestEnd] = useState<number>(5000);
@@ -152,7 +154,7 @@ const App = () => {
               paused = false;
               animate(
                 true,
-                0,
+                globalCurrentTime,
                 canvas!,
                 allObjects,
                 p_keyframes,
@@ -166,6 +168,13 @@ const App = () => {
             }}
           >
             Play
+          </Button>
+          <Button
+            onClick={() => {
+              paused = true;
+            }}
+          >
+            Pause
           </Button>
           <Typography>Current Time: {currentTime}</Typography>
           <AudioUploadButton onAudioUpload={onAudioUpload} />
@@ -348,7 +357,7 @@ const calculateTextWidth = (
 // IMPROVED BY CHATGPT -- GEORGE
 async function animate(
   play: boolean,
-  time: number,
+  currenttime: number,
   canvas: fabric.Canvas,
   objects: fabric.Object[],
   p_keyframes: PKeyframe[],
@@ -360,9 +369,8 @@ async function animate(
   let draggingPanel = false;
   if (!draggingPanel) {
     const starttime = new Date();
-    const offset = time;
+    const offset = currenttime;
     const inst = canvas;
-    let currenttime = 0;
 
     // handling keyframes
     // keyframes.forEach((keyframe, index) => {
@@ -544,7 +552,14 @@ async function animate(
     // }
     // playVideos(time);
     if (play)
-      playAudio(time, objects, canvas!, p_keyframes, currenttime, duration);
+      playAudio(
+        currenttime,
+        objects,
+        canvas!,
+        p_keyframes,
+        currenttime,
+        duration
+      );
 
     if (play && !paused) {
       const animation = { value: 0 };
@@ -608,21 +623,25 @@ async function animate(
           } else {
             // pause();
             paused = true;
+            globalCurrentTime = currenttime;
             animation.value = duration + 1;
             anime.remove(animation);
+            console.log(
+              "[animate] animation paused, globalCurrentTime: " +
+                globalCurrentTime
+            );
           }
         },
         complete: () => {
           // pause();
           paused = true;
+          globalCurrentTime = 0;
         },
       });
     } else if (paused) {
-      currenttime = time;
+      globalCurrentTime = currenttime;
     }
   }
-
-  console.log("[animate] animation ends");
 }
 
 // Check whether any keyframe exists for a certain property
@@ -981,9 +1000,7 @@ function playAudio(
   canvas: fabric.Canvas,
   p_keyframes: PKeyframe[],
   currenttime: number,
-  duration: number,
-  play: boolean = true,
-  paused: boolean = false
+  duration: number
 ) {
   objects.forEach(async function (object) {
     var start = false;
@@ -1007,7 +1024,7 @@ function playAudio(
         autoplay: true,
         update: async function () {
           currenttime = animation.value;
-          if (start && play && !paused) {
+          if (start && !paused) {
             let this_pkey = p_keyframes.find((x) => x.id == object.id);
             if (!this_pkey) {
               return;
@@ -1051,6 +1068,7 @@ function playAudio(
               }
             }
           } else if (paused) {
+            console.log("[playAudio] now pausing audio");
             if (obj.get("src")) {
               console.log("[playAudio] pausing audio 2");
               obj.get("src").pause();
