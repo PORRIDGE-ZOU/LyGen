@@ -9,6 +9,7 @@ import { PKeyframe, LyricsLine } from "../components/types";
 import { AudioUploadButton, TextUploadButton } from "@/components/FileUploader";
 import { props, p_keyframes, allObjects } from "@/components/globals";
 import ColorPickerInput from "@/components/ColorPickerInput";
+import LyricsColumn from "@/components/LyricsColumn";
 import { set } from "animejs";
 
 let paused = false;
@@ -27,6 +28,7 @@ const App = () => {
   const [fillcolor, setFillColor] = useState("#ffffff");
   const [activeXPos, setActiveXPos] = useState<number>(0);
   const [activeYPos, setActiveYPos] = useState<number>(0);
+  const [lyrics, setLyrics] = useState<string>("Test Lyrics\nTest Lyrics2");
 
   useEffect(() => {
     const canvas = new fabric.Canvas("canvas", {
@@ -156,7 +158,33 @@ const App = () => {
   };
 
   const onLyricsUpload = (file: File) => {
-    lyricsParse(file, canvas!);
+    lyricsParse(file, canvas!, onLyricObjectsChange);
+  };
+
+  /** Do stuff after the new lyrics are uploaded and parsed */
+  const onLyricObjectsChange = (lyrics: LyricsLine[]) => {
+    let newLyrics: string = "";
+    lyrics.forEach((line, index) => {
+      var endTime = lyrics[index + 1]
+        ? lyrics[index + 1].timeInSeconds
+        : line.getTimeInSeconds() + 5;
+      newLyrics += line.text;
+      newLyrics += "[" + line.timeInSeconds + " -- " + endTime + "]\n";
+    });
+    setLyrics(newLyrics);
+  };
+
+  const onSeekToTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let time = parseFloat(event.target.value);
+    globalCurrentTime = time;
+    animate(
+      false,
+      globalCurrentTime,
+      canvas!,
+      allObjects,
+      p_keyframes,
+      videoDuration
+    );
   };
 
   return (
@@ -165,7 +193,7 @@ const App = () => {
       maxWidth={false}
       style={{ width: "100vw", height: "100vh" }}
     >
-      <Box display="flex" flexDirection="row" width="100%" height="60%">
+      <Box display="flex" flexDirection="row" width="100%" height="65%">
         <Box width="25%">
           <Button onClick={() => addRect(canvas)}>New Rectangle</Button>
           <Button
@@ -229,7 +257,7 @@ const App = () => {
           <AudioUploadButton onAudioUpload={onAudioUpload} />
           <TextUploadButton onLyricsUpload={onLyricsUpload} />
           <TextField
-            id="outlined-number"
+            id="testStartTime"
             label="TestStartTime"
             type="number"
             defaultValue={2000}
@@ -242,7 +270,7 @@ const App = () => {
             }}
           />
           <TextField
-            id="outlined-number"
+            id="testEndTime"
             label="TestEndTime"
             type="number"
             defaultValue={5000}
@@ -273,6 +301,18 @@ const App = () => {
           >
             TestTextBox
           </Button>
+          <TextField
+            id="seekToTime"
+            label="seek to time (in ms)"
+            type="number"
+            defaultValue={2000}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              onSeekToTimeChange(event);
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
         </Box>
         <Box width="100%">
           <canvas id="canvas" />
@@ -313,13 +353,24 @@ const App = () => {
           />
         </Box>
       </Box>
+      <Box display="flex" flexDirection="row" width="100%" height="35%">
+        <LyricsColumn
+          onLyricsChange={() => {}}
+          lyrics={lyrics}
+          setLyrics={setLyrics}
+        />
+      </Box>
     </Container>
   );
 };
 
 // Reselect
 function reselect(selection: FabricObject, canvas: fabric.Canvas) {
-  if (selection.type == "activeSelection") {
+  if (!selection) {
+    console.warn("[reselect] selection is undefined. May be some error.");
+    return;
+  }
+  if (selection.get("type") == "activeSelection") {
     var objs = [];
     for (let so of selection._objects) {
       for (let obj of canvas.getObjects()) {
@@ -1023,7 +1074,11 @@ function newLayer(
   console.log("[newLayer] layer created, newLayer() ends");
 }
 
-function lyricsParse(file: File, canvas: fabric.Canvas) {
+function lyricsParse(
+  file: File,
+  canvas: fabric.Canvas,
+  onLyricsUpload: (e: LyricsLine[]) => any
+) {
   var reader = new FileReader();
   reader.readAsText(file);
   reader.onload = function (e) {
@@ -1072,6 +1127,8 @@ function lyricsParse(file: File, canvas: fabric.Canvas) {
       );
       // canvas.renderAll();
     });
+    canvas.renderAll();
+    onLyricsUpload(lyricsObjects);
   };
 }
 
