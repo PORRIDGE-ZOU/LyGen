@@ -11,6 +11,7 @@ import { props, p_keyframes, allObjects } from "@/components/globals";
 import ColorPickerInput from "@/components/ColorPickerInput";
 import LyricsColumn from "@/components/LyricsColumn";
 import { set } from "animejs";
+import LyricSearch from "@/components/LyricsSearch";
 
 let paused = false;
 let currentIndex = 0;
@@ -176,7 +177,12 @@ const App = () => {
 
   const onSeekToTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     let time = parseFloat(event.target.value);
+    if (time < 0 || time > videoDuration || isNaN(time)) {
+      console.warn("[onSeekToTimeChange] invalid time: " + time);
+      return;
+    }
     globalCurrentTime = time;
+    setCurrentTime(time);
     animate(
       false,
       globalCurrentTime,
@@ -185,6 +191,10 @@ const App = () => {
       p_keyframes,
       videoDuration
     );
+  };
+
+  const onLyricsSearchSuccess = (lyrics: string) => {
+    lyricsParseWithString(lyrics, canvas!, onLyricObjectsChange);
   };
 
   return (
@@ -306,6 +316,7 @@ const App = () => {
             label="seek to time (in ms)"
             type="number"
             defaultValue={2000}
+            value={currentTime}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               onSeekToTimeChange(event);
             }}
@@ -359,6 +370,7 @@ const App = () => {
           lyrics={lyrics}
           setLyrics={setLyrics}
         />
+        <LyricSearch onLyricsSearchSuccess={onLyricsSearchSuccess} />
       </Box>
     </Container>
   );
@@ -1085,51 +1097,58 @@ function lyricsParse(
     // alert file name
     console.log(reader.result);
     var lyrics = reader.result;
-    var lyricsArray = (lyrics as string).split("\n");
-    var lyricsObjects: LyricsLine[] = [];
-    lyricsArray.forEach(function (line) {
-      var time = line.split("]")[0].split("[")[1];
-      // text should start from the second character, because the first one is space
-      var text = line.split("]")[1].substring(1);
-      var lyrics = new LyricsLine(text, time);
-      lyricsObjects.push(lyrics);
-    });
-    console.log(lyricsObjects);
-
-    lyricsObjects.forEach(function (line, index) {
-      // duration should be the next index's time - this time
-      // var duration = 0;
-      // duration = lyricsObjects[index + 1] ?
-      //   (lyricsObjects[index + 1].timeInSeconds - line.timeInSeconds) * 1000 :
-      //   5000; // HOW TO SET DEFAULT? --GEORGE
-      var endTime = lyricsObjects[index + 1]
-        ? lyricsObjects[index + 1].timeInSeconds * 1000
-        : line.getTimeInSeconds() * 1000 + 5000;
-
-      console.log(
-        "[lyricsParse] start and endTime: " +
-          line.timeInSeconds * 1000 +
-          " " +
-          endTime
-      );
-      newTextbox(
-        30,
-        700,
-        line.getText(),
-        960,
-        540,
-        200,
-        true,
-        "Inter",
-        canvas,
-        line.getTimeInSeconds() * 1000,
-        endTime
-      );
-      // canvas.renderAll();
-    });
-    canvas.renderAll();
-    onLyricsUpload(lyricsObjects);
+    lyricsParseWithString(lyrics as string, canvas, onLyricsUpload);
   };
+}
+function lyricsParseWithString(
+  lyrics: String,
+  canvas: fabric.Canvas,
+  onLyricsUpload: (e: LyricsLine[]) => any
+) {
+  var lyricsArray = (lyrics as string).split("\n");
+  var lyricsObjects: LyricsLine[] = [];
+  lyricsArray.forEach(function (line) {
+    var time = line.split("]")[0].split("[")[1];
+    // text should start from the second character, because the first one is space
+    var text = line.split("]")[1].substring(1);
+    var lyrics = new LyricsLine(text, time);
+    lyricsObjects.push(lyrics);
+  });
+  console.log(lyricsObjects);
+
+  lyricsObjects.forEach(function (line, index) {
+    // duration should be the next index's time - this time
+    // var duration = 0;
+    // duration = lyricsObjects[index + 1] ?
+    //   (lyricsObjects[index + 1].timeInSeconds - line.timeInSeconds) * 1000 :
+    //   5000; // HOW TO SET DEFAULT? --GEORGE
+    var endTime = lyricsObjects[index + 1]
+      ? lyricsObjects[index + 1].timeInSeconds * 1000
+      : line.getTimeInSeconds() * 1000 + 5000;
+
+    console.log(
+      "[lyricsParse] start and endTime: " +
+        line.timeInSeconds * 1000 +
+        " " +
+        endTime
+    );
+    newTextbox(
+      30,
+      700,
+      line.getText(),
+      960,
+      540,
+      200,
+      true,
+      "Inter",
+      canvas,
+      line.getTimeInSeconds() * 1000,
+      endTime
+    );
+    // canvas.renderAll();
+  });
+  canvas.renderAll();
+  onLyricsUpload(lyricsObjects);
 }
 
 // Create an audio layer
