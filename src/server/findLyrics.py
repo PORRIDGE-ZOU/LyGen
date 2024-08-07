@@ -8,6 +8,9 @@ app = Flask(__name__)
 
 def searchLyrics(track, artist, enhanced=False):
     logging.info(f"Searching for lyrics for {track} by {artist}")
+    enhancedLyrics = syncedlyrics.search(f"{track} {artist}", enhanced=True)
+    notEnhancedLyrics = syncedlyrics.search(
+        f"{track} {artist}", enhanced=False)
     lyrics = syncedlyrics.search(f"{track} {artist}", enhanced=enhanced)
     return lyrics
 

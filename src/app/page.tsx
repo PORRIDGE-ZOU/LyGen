@@ -10,7 +10,6 @@ import { AudioUploadButton, TextUploadButton } from "@/components/FileUploader";
 import { props, p_keyframes, allObjects } from "@/components/globals";
 import ColorPickerInput from "@/components/ColorPickerInput";
 import LyricsColumn from "@/components/LyricsColumn";
-import { set } from "animejs";
 import LyricSearch from "@/components/LyricsSearch";
 
 let paused = false;
@@ -194,7 +193,8 @@ const App = () => {
   };
 
   const onLyricsSearchSuccess = (lyrics: string) => {
-    lyricsParseWithString(lyrics, canvas!, onLyricObjectsChange);
+    // lyricsParseWithString(lyrics, canvas!, onLyricObjectsChange);
+    enhancedLyricsParseWithString(lyrics, canvas!, onLyricObjectsChange);
   };
 
   return (
@@ -212,10 +212,10 @@ const App = () => {
                 30,
                 700,
                 "Hello World",
-                960,
-                540,
+                480,
+                270,
                 200,
-                true,
+                false,
                 "Inter",
                 canvas
               )
@@ -470,7 +470,7 @@ const newTextbox = (
       fontweight + " " + fontsize + "px Inter",
       canvas
     ),
-    id: "Text" + currentIndex++, // 0 FOR NOW -- George
+    id: "Text" + currentIndex++,
     // shadow: {
     //   color: "#000",
     //   offsetX: 0,
@@ -505,7 +505,7 @@ const newTextbox = (
     newtext.set("left", canvas?.get("left") + canvas?.get("width") / 2);
     newtext.set("top", canvas?.get("top") + canvas?.get("height") / 2);
     console.log("[newTextbox] centering text (this is a correct centering.)");
-    canvas?.centerObject(newtext);
+    // canvas?.centerObject(newtext);
     canvas?.renderAll();
   }
   // set active here!
@@ -517,13 +517,14 @@ const newTextbox = (
 const calculateTextWidth = (
   text: string,
   font: string,
-  canvas?: fabric.Canvas | fabric.StaticCanvas
+  canvas?: fabric.Canvas
 ) => {
   if (!canvas) {
     console.error("[calculateTextWidth] canvas is undefined");
   }
   let ctx = canvas!.getContext("2d");
   ctx.font = font;
+  // TODO: mysterious offset -- GEORGE
   return ctx!.measureText(text).width + 10;
 };
 
@@ -737,6 +738,7 @@ async function animate(
 
     if (play && !paused) {
       const animation = { value: 0 };
+      // initializes a new animation (inside animate())
       const mainInstance = anime({
         targets: animation,
         value: [currenttime, duration],
@@ -795,19 +797,13 @@ async function animate(
             //   });
             // }
           } else {
-            // pause();
             paused = true;
             globalCurrentTime = currenttime;
             animation.value = duration + 1;
             anime.remove(animation);
-            console.log(
-              "[animate] animation paused, globalCurrentTime: " +
-                globalCurrentTime
-            );
           }
         },
         complete: () => {
-          // pause();
           paused = true;
           globalCurrentTime = 0;
         },
@@ -1017,7 +1013,7 @@ function newLayer(
       object: newObject,
       id: newObject.get("id"),
     });
-    console.log("[newLayer] all p_keyframes: " + p_keyframes);
+    // console.log("[newLayer] all p_keyframes: " + p_keyframes);
   }
 
   // Render the layer
@@ -1149,6 +1145,154 @@ function lyricsParseWithString(
   });
   canvas.renderAll();
   onLyricsUpload(lyricsObjects);
+}
+function enhancedLyricsParse(
+  file: File,
+  canvas: fabric.Canvas,
+  onLyricsUpload: (e: LyricsLine[]) => any
+) {
+  var reader = new FileReader();
+  reader.readAsText(file);
+  reader.onload = function (e) {
+    console.log(reader.result);
+    var lyrics = reader.result;
+    enhancedLyricsParseWithString(lyrics as string, canvas, onLyricsUpload);
+  };
+}
+function enhancedLyricsParseWithString(
+  lyrics: String,
+  canvas: fabric.Canvas,
+  onLyricsUpload: (e: LyricsLine[]) => any
+) {
+  console.log("[enhanedLyricsParseWithString] lyrics: " + lyrics);
+  var lyricsArray = (lyrics as string).split("\n");
+  var lyricsObjects: LyricsLine[] = [];
+  lyricsArray.forEach(function (line, index) {
+    // each line is in this format: [00:08.69] <00:08.69> I <00:08.75>   <00:08.81> got <00:08.91>   <00:09.02> my <00:09.18>   <00:09.35> driver's <00:10.34>   <00:10.73> license <00:10.95>   <00:11.18> last <00:11.36>   <00:11.54> week
+    console.log("line: " + line);
+    if (line == "") {
+      return;
+    }
+
+    // split out the [] part first
+    var startTime = line.split("]")[0].split("[")[1]; // this will be "00:08.69"
+    var nextLineStartTime = "";
+    if (index != lyricsArray.length - 1) {
+      nextLineStartTime = lyricsArray[index + 1].split("]")[0].split("[")[1];
+    }
+    var hasReachedEnd = false;
+    var currentIndex = 0;
+    var exeSafety = 0;
+    while (!hasReachedEnd) {
+      exeSafety++;
+      if (exeSafety > 1000) {
+        console.log("Safety break");
+        break;
+      }
+      var nextLeftBracket = line.indexOf("<", currentIndex);
+      var nextRightBracket = line.indexOf(">", currentIndex);
+      var nextNextLeftBracket = line.indexOf("<", nextRightBracket);
+      var nextNextRightBracket = line.indexOf(">", nextNextLeftBracket);
+      if (nextNextLeftBracket == -1) {
+        hasReachedEnd = true;
+      }
+      var wordStartTime = line.substring(nextLeftBracket + 1, nextRightBracket);
+      var word = line.substring(
+        nextRightBracket + 1,
+        nextNextLeftBracket == -1 ? line.length : nextNextLeftBracket
+      );
+      var wordEndTime = line.substring(
+        nextNextLeftBracket + 1,
+        nextNextRightBracket
+      );
+      if (hasReachedEnd) {
+        wordEndTime = nextLineStartTime;
+      }
+      word = word.trim();
+      var lyrics = new LyricsLine(
+        word,
+        wordStartTime,
+        true,
+        hasReachedEnd,
+        wordEndTime,
+        nextLineStartTime
+      );
+      lyricsObjects.push(lyrics);
+      console.log("new lyrics: " + lyrics.getText());
+
+      currentIndex = nextNextRightBracket + 1;
+    }
+  });
+
+  // loop over the lyrics objects, combine words into lines, and calculate the width of the line
+  let ctx = canvas!.getContext("2d");
+  ctx.font = "400 24px Source Sans Pro";
+  var widthOfSpace = ctx.measureText(" ").width + 0;
+  let lineWidths: number[] = [];
+  var currentLine = "";
+  var currentWidth = 0;
+  lyricsObjects.forEach(function (word, index) {
+    currentLine += word.getText();
+    currentLine += " ";
+    currentWidth += ctx.measureText(word.getText()).width + 0;
+    currentWidth += widthOfSpace;
+    if (word.isEnhancedSentenceEnd) {
+      lineWidths.push(currentWidth);
+      currentLine = "";
+      currentWidth = 0;
+    }
+  });
+
+  /**
+   * TODO: look at the measurement of text below. Now, the schema is:
+   * 1. Measure the text width of each word
+   * 2. Measure the width of space " "
+   * 3. Add them on to calculate the width of each line
+   * 4. When we start adding textboxes, we calculate the starting position of each line by subtracting half of the line width from the center of the canvas
+   * 5. We add the width of each word and the width of space to calculate the next position of the textbox. Since each box is ORIGIN-CENTERED, we need to separate the addition of text width into two halves.
+   * Using this method, the text is centered, but the space between words is not consistent. This is very strange. I've also observed that the width measurement for each text block is NOT ACCURATE. --GEORGE
+   */
+  // loop over the lyrics objects, create textboxes for each word
+  var currentLineIndex = 0;
+  var centerX = 480;
+  var nextXPos = 480 - lineWidths[currentLineIndex] / 2;
+  console.log("INITIAL POSITION: " + nextXPos);
+  lyricsObjects.forEach(function (word, index) {
+    var endTime = word.enhancedSentenceEndTime * 1000;
+    nextXPos += ctx.measureText(word.getText()).width / 2 + 0;
+
+    newTextbox(
+      24,
+      400,
+      word.getText(),
+      nextXPos,
+      270,
+      200,
+      false,
+      "Source Sans Pro",
+      canvas,
+      word.getTimeInSeconds() * 1000,
+      endTime
+    );
+
+    if (word.isEnhancedSentenceEnd) {
+      currentLineIndex++;
+      nextXPos = centerX - lineWidths[currentLineIndex] / 2;
+    } else {
+      nextXPos += ctx.measureText(word.getText()).width / 2;
+      nextXPos += widthOfSpace;
+      console.log(
+        "current word: " +
+          word.getText() +
+          ", current word width: " +
+          ctx.measureText(word.getText()).width
+      );
+      console.log("current space width: " + widthOfSpace);
+      console.log("current next xpos: " + nextXPos);
+    }
+  });
+
+  canvas.renderAll();
 }
 
 // Create an audio layer
