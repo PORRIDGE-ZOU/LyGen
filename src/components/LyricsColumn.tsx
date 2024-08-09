@@ -37,13 +37,13 @@ const LyricsColumn = ({
         margin="normal"
         fullWidth
         multiline
-        rows={6} // Adjust the number of rows as needed for a big input box
+        rows={15} // Adjust the number of rows as needed for a big input box
         onChange={handleInputChange}
         value={lyrics}
       />
-      <Button variant="contained" color="primary" onClick={addInput}>
+      {/* <Button variant="contained" color="primary" onClick={addInput}>
         Render
-      </Button>
+      </Button> */}
     </Box>
   );
 };

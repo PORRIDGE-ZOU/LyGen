@@ -11,6 +11,8 @@ import { props, p_keyframes, allObjects } from "@/components/globals";
 import ColorPickerInput from "@/components/ColorPickerInput";
 import LyricsColumn from "@/components/LyricsColumn";
 import LyricSearch from "@/components/LyricsSearch";
+import GeneralPanel from "@/components/GeneralPanel";
+import WidgetPanel from "@/components/WidgetPanel";
 
 let paused = false;
 let currentIndex = 0;
@@ -205,125 +207,12 @@ const App = () => {
     >
       <Box display="flex" flexDirection="row" width="100%" height="65%">
         <Box width="25%">
-          <Button onClick={() => addRect(canvas)}>New Rectangle</Button>
-          <Button
-            onClick={() =>
-              newTextbox(
-                30,
-                700,
-                "Hello World",
-                480,
-                270,
-                200,
-                false,
-                "Inter",
-                canvas
-              )
-            }
-          >
-            New Text Box
-          </Button>
-          <TextField
-            id="outlined-number"
-            label="Video Duration (in ms)"
-            type="number"
-            defaultValue={10000}
-            value={videoDuration}
-            InputLabelProps={{
-              shrink: true,
-            }}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              onChangeVideoDuration(event);
-            }}
+          <LyricsColumn
+            onLyricsChange={() => {}}
+            lyrics={lyrics}
+            setLyrics={setLyrics}
           />
-          <Button
-            onClick={() => {
-              paused = false;
-              animate(
-                true,
-                globalCurrentTime,
-                canvas!,
-                allObjects,
-                p_keyframes,
-                videoDuration,
-                (time) => {
-                  // clamp time to int
-                  time = Math.floor(time);
-                  setCurrentTime(time);
-                }
-              );
-            }}
-          >
-            Play
-          </Button>
-          <Button
-            onClick={() => {
-              paused = true;
-            }}
-          >
-            Pause
-          </Button>
-          <Typography>Current Time: {currentTime}</Typography>
-          <AudioUploadButton onAudioUpload={onAudioUpload} />
-          <TextUploadButton onLyricsUpload={onLyricsUpload} />
-          <TextField
-            id="testStartTime"
-            label="TestStartTime"
-            type="number"
-            defaultValue={2000}
-            value={testStart}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setTestStart(parseInt(event.target.value));
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <TextField
-            id="testEndTime"
-            label="TestEndTime"
-            type="number"
-            defaultValue={5000}
-            value={testEnd}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setTestEnd(parseInt(event.target.value));
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <Button
-            onClick={() =>
-              newTextbox(
-                30,
-                700,
-                "Hello World",
-                960,
-                540,
-                200,
-                true,
-                "Inter",
-                canvas,
-                testStart,
-                testEnd
-              )
-            }
-          >
-            TestTextBox
-          </Button>
-          <TextField
-            id="seekToTime"
-            label="seek to time (in ms)"
-            type="number"
-            defaultValue={2000}
-            value={currentTime}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              onSeekToTimeChange(event);
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
+          <LyricSearch onLyricsSearchSuccess={onLyricsSearchSuccess} />
         </Box>
         <Box width="100%">
           <canvas id="canvas" />
@@ -365,12 +254,116 @@ const App = () => {
         </Box>
       </Box>
       <Box display="flex" flexDirection="row" width="100%" height="35%">
-        <LyricsColumn
-          onLyricsChange={() => {}}
-          lyrics={lyrics}
-          setLyrics={setLyrics}
-        />
-        <LyricSearch onLyricsSearchSuccess={onLyricsSearchSuccess} />
+        <Box width="30%" height="100%">
+          <GeneralPanel
+            onPlayClick={() => {
+              paused = false;
+              animate(
+                true,
+                globalCurrentTime,
+                canvas!,
+                allObjects,
+                p_keyframes,
+                videoDuration,
+                (time) => {
+                  // clamp time to int
+                  time = Math.floor(time);
+                  setCurrentTime(time);
+                }
+              );
+            }}
+            onPauseClick={() => {
+              paused = true;
+            }}
+            currentTime={currentTime}
+            videoDuration={videoDuration}
+            onChangeVideoDuration={onChangeVideoDuration}
+            onAudioUpload={onAudioUpload}
+            onLyricsUpload={onLyricsUpload}
+            onSeekToTimeChange={onSeekToTimeChange}
+          ></GeneralPanel>
+        </Box>
+
+        <Box whiteSpace={"pre-wrap"} width="70%" height="100%">
+          <WidgetPanel></WidgetPanel>
+        </Box>
+
+        {/* <Box width="70%">
+          <Button
+            variant="contained"
+            component="span"
+            onClick={() => addRect(canvas)}
+          >
+            New Rectangle
+          </Button>
+          <Button
+            variant="contained"
+            component="span"
+            onClick={() =>
+              newTextbox(
+                30,
+                700,
+                "Hello World",
+                480,
+                270,
+                200,
+                false,
+                "Source Sans Pro",
+                canvas
+              )
+            }
+          >
+            New Text Box
+          </Button>
+
+          <TextField
+            id="testStartTime"
+            label="TestStartTime"
+            type="number"
+            defaultValue={2000}
+            value={testStart}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setTestStart(parseInt(event.target.value));
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <TextField
+            id="testEndTime"
+            label="TestEndTime"
+            type="number"
+            defaultValue={5000}
+            value={testEnd}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setTestEnd(parseInt(event.target.value));
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <Button
+            variant="contained"
+            component="span"
+            onClick={() =>
+              newTextbox(
+                30,
+                700,
+                "Hello World",
+                960,
+                540,
+                200,
+                true,
+                "Source Sans Pro",
+                canvas,
+                testStart,
+                testEnd
+              )
+            }
+          >
+            Add Timed Text
+          </Button>
+        </Box> */}
       </Box>
     </Container>
   );
@@ -1416,3 +1409,8 @@ function playAudio(
 }
 
 export default App;
+
+/**
+ * Feedback for poster from group meeting
+ * Online lyric video maker -> generic/existing makers
+ */
