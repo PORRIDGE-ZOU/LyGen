@@ -160,11 +160,11 @@ const App = () => {
   };
 
   const onLyricsUpload = (file: File) => {
-    lyricsParse(file, canvas!, onLyricObjectsChange);
+    enhancedLyricsParse(file, canvas!, onEnhancedLyricObjectsChange);
   };
 
   /** Do stuff after the new lyrics are uploaded and parsed */
-  const onLyricObjectsChange = (lyrics: LyricsLine[]) => {
+  const onBasicLyricObjectsChange = (lyrics: LyricsLine[]) => {
     let newLyrics: string = "";
     lyrics.forEach((line, index) => {
       var endTime = lyrics[index + 1]
@@ -172,6 +172,19 @@ const App = () => {
         : line.getTimeInSeconds() + 5;
       newLyrics += line.text;
       newLyrics += "[" + line.timeInSeconds + " -- " + endTime + "]\n";
+    });
+    setLyrics(newLyrics);
+  };
+
+  const onEnhancedLyricObjectsChange = (lyrics: LyricsLine[]) => {
+    let newLyrics: string = "";
+    lyrics.forEach((word, index) => {
+      newLyrics += word.text;
+      if (word.isEnhancedSentenceEnd) {
+        newLyrics += "\n";
+      } else {
+        newLyrics += " ";
+      }
     });
     setLyrics(newLyrics);
   };
@@ -196,7 +209,7 @@ const App = () => {
 
   const onLyricsSearchSuccess = (lyrics: string) => {
     // lyricsParseWithString(lyrics, canvas!, onLyricObjectsChange);
-    enhancedLyricsParseWithString(lyrics, canvas!, onLyricObjectsChange);
+    enhancedLyricsParseWithString(lyrics, canvas!, () => {});
   };
 
   return (
@@ -369,7 +382,7 @@ const App = () => {
   );
 };
 
-// Reselect
+// Deselect and reselect an object
 function reselect(selection: FabricObject, canvas: fabric.Canvas) {
   if (!selection) {
     console.warn("[reselect] selection is undefined. May be some error.");
@@ -521,8 +534,17 @@ const calculateTextWidth = (
   return ctx!.measureText(text).width + 10;
 };
 
-// Animate timeline (or seek to specific point in time)
-// IMPROVED BY CHATGPT -- GEORGE
+/**
+ * Animate timeline (or seek to specific point in time)
+ * IMPROVED BY CHATGPT -- GEORGE
+ * @param play
+ * @param currenttime
+ * @param canvas
+ * @param objects
+ * @param p_keyframes
+ * @param duration
+ * @param onTimeChange
+ */
 async function animate(
   play: boolean,
   currenttime: number,
@@ -1160,6 +1182,35 @@ function enhancedLyricsParseWithString(
   console.log("[enhanedLyricsParseWithString] lyrics: " + lyrics);
   var lyricsArray = (lyrics as string).split("\n");
   var lyricsObjects: LyricsLine[] = [];
+
+  const invalidCharacterPattern = /[^<>0-9:. ]/;
+  function findNextInvalidCharacterIndex(
+    str: string,
+    i: number
+  ): number | null {
+    if (i < 0 || i >= str.length) {
+      throw new Error("Invalid starting index.");
+    }
+    for (let index = i; index < str.length; index++) {
+      if (invalidCharacterPattern.test(str[index])) {
+        return index; // Return the index of the first invalid character
+      }
+    }
+    for (let index = i; index < str.length; index++) {
+      if (
+        str[index] !== "<" &&
+        str[index] !== " " &&
+        str[index] !== ">" &&
+        str[index] !== ":" &&
+        str[index] !== "." &&
+        // is not number
+        isNaN(parseInt(str[index]))
+      ) {
+        return index; // Return null if no such character is found
+      }
+    }
+    return null; // Return null if no such character is found
+  }
   lyricsArray.forEach(function (line, index) {
     // each line is in this format: [00:08.69] <00:08.69> I <00:08.75>   <00:08.81> got <00:08.91>   <00:09.02> my <00:09.18>   <00:09.35> driver's <00:10.34>   <00:10.73> license <00:10.95>   <00:11.18> last <00:11.36>   <00:11.54> week
     console.log("line: " + line);
@@ -1174,34 +1225,52 @@ function enhancedLyricsParseWithString(
       nextLineStartTime = lyricsArray[index + 1].split("]")[0].split("[")[1];
     }
     var hasReachedEnd = false;
-    var currentIndex = 0;
+    var currentIndex = 10;
     var exeSafety = 0;
+    line = line.trim();
     while (!hasReachedEnd) {
       exeSafety++;
       if (exeSafety > 1000) {
         console.log("Safety break");
         break;
       }
-      var nextLeftBracket = line.indexOf("<", currentIndex);
-      var nextRightBracket = line.indexOf(">", currentIndex);
-      var nextNextLeftBracket = line.indexOf("<", nextRightBracket);
-      var nextNextRightBracket = line.indexOf(">", nextNextLeftBracket);
-      if (nextNextLeftBracket == -1) {
+      var nextWordIndex = findNextInvalidCharacterIndex(line, currentIndex);
+      // if there is no invalid character, then we have reached the end of the line
+      if (nextWordIndex == null) {
+        hasReachedEnd = true;
+        break;
+      }
+      // find the last index of '>' before this nextWordIndex
+      var lastRightBracketIndex = line.lastIndexOf(">", nextWordIndex);
+      var lastLeftBracketIndex = line.lastIndexOf("<", lastRightBracketIndex);
+      var nextLeftBracket = line.indexOf("<", lastLeftBracketIndex + 1);
+      var nextRightBracket = line.indexOf(">", lastRightBracketIndex + 1);
+      if (nextLeftBracket == -1) {
         hasReachedEnd = true;
       }
-      var wordStartTime = line.substring(nextLeftBracket + 1, nextRightBracket);
-      var word = line.substring(
-        nextRightBracket + 1,
-        nextNextLeftBracket == -1 ? line.length : nextNextLeftBracket
+      var wordStartTime = line.substring(
+        lastLeftBracketIndex + 1,
+        lastRightBracketIndex
       );
-      var wordEndTime = line.substring(
-        nextNextLeftBracket + 1,
-        nextNextRightBracket
-      );
+      var wordEndTime = line.substring(nextLeftBracket + 1, nextRightBracket);
       if (hasReachedEnd) {
         wordEndTime = nextLineStartTime;
       }
-      word = word.trim();
+      var word = line
+        .substring(
+          lastRightBracketIndex + 1,
+          hasReachedEnd ? line.length : nextLeftBracket
+        )
+        .trim();
+
+      console.log(
+        "[lyrics] word: " +
+          word +
+          " start: " +
+          wordStartTime +
+          " end: " +
+          wordEndTime
+      );
       var lyrics = new LyricsLine(
         word,
         wordStartTime,
@@ -1212,8 +1281,39 @@ function enhancedLyricsParseWithString(
       );
       lyricsObjects.push(lyrics);
       console.log("new lyrics: " + lyrics.getText());
+      currentIndex = nextRightBracket + 1;
 
-      currentIndex = nextNextRightBracket + 1;
+      // var nextLeftBracket = line.indexOf("<", currentIndex);
+      // var nextRightBracket = line.indexOf(">", currentIndex);
+      // var nextNextLeftBracket = line.indexOf("<", nextRightBracket);
+      // var nextNextRightBracket = line.indexOf(">", nextNextLeftBracket);
+      // if (nextNextLeftBracket == -1) {
+      //   hasReachedEnd = true;
+      // }
+      // var wordStartTime = line.substring(nextLeftBracket + 1, nextRightBracket);
+      // var word = line.substring(
+      //   nextRightBracket + 1,
+      //   nextNextLeftBracket == -1 ? line.length : nextNextLeftBracket
+      // );
+      // var wordEndTime = line.substring(
+      //   nextNextLeftBracket + 1,
+      //   nextNextRightBracket
+      // );
+      // if (hasReachedEnd) {
+      //   wordEndTime = nextLineStartTime;
+      // }
+      // word = word.trim();
+      // var lyrics = new LyricsLine(
+      //   word,
+      //   wordStartTime,
+      //   true,
+      //   hasReachedEnd,
+      //   wordEndTime,
+      //   nextLineStartTime
+      // );
+      // lyricsObjects.push(lyrics);
+      // console.log("new lyrics: " + lyrics.getText());
+      // currentIndex = nextNextRightBracket + 1;
     }
   });
 
@@ -1286,6 +1386,7 @@ function enhancedLyricsParseWithString(
   });
 
   canvas.renderAll();
+  onLyricsUpload(lyricsObjects);
 }
 
 // Create an audio layer

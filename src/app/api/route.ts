@@ -13,15 +13,15 @@ export async function POST(req: Request) {
     });
 
     if (!flaskRes.ok) {
-      throw new Error("Failed to fetch lyrics from Flask backend");
+      throw new Error("[route.ts] Failed to fetch lyrics from Flask backend");
     }
 
     const data = await flaskRes.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching lyrics:", error);
+    console.error("[route.ts] Error fetching lyrics: ", error);
     return NextResponse.json(
-      { error: "Failed to search lyrics" },
+      { error: "[route.ts] Failed to search lyrics" },
       { status: 500 }
     );
   }
