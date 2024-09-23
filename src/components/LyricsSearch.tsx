@@ -42,7 +42,6 @@ const LyricSearch = ({ onLyricsSearchSuccess }: LyricSearchProps) => {
         id="songTitle"
         label="Song Title"
         placeholder="Song Title"
-        defaultValue="Song Title"
         value={songTitle}
         onChange={(e) => setSongTitle(e.target.value)}
       />

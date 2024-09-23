@@ -1,25 +1,39 @@
 "use client"; // next.js app router
 
+// ------------------ IMPORTS ------------------
 import React, { useState, useEffect } from "react";
 import * as fabric from "fabric";
 import { FabricObject, Canvas } from "fabric";
 import { Box, Button, Container, Typography, TextField } from "@mui/material";
 import anime from "animejs/lib/anime.es.js";
-import { PKeyframe, LyricsLine } from "../components/types";
+import {
+  PKeyframe,
+  LyricsLine,
+  AnimatedText,
+  LygenObject,
+} from "../components/types";
 import { AudioUploadButton, TextUploadButton } from "@/components/FileUploader";
-import { props, p_keyframes, allObjects } from "@/components/globals";
+import {
+  props,
+  p_keyframes,
+  allObjects,
+  allAnimatedTexts,
+} from "@/components/globals";
 import ColorPickerInput from "@/components/ColorPickerInput";
 import LyricsColumn from "@/components/LyricsColumn";
 import LyricSearch from "@/components/LyricsSearch";
 import GeneralPanel from "@/components/GeneralPanel";
 import WidgetPanel from "@/components/WidgetPanel";
 
-let paused = false;
+// ------------------ GLOBAL VARIABLES ------------------
+let globalPaused = false;
 let currentIndex = 0;
 let globalDuration = 0;
 let globalCurrentTime = 0;
 
+// ------------------ MAIN COMPONENT ------------------
 const App = () => {
+  // ------------------ STATE VARIABLES ------------------
   const [canvas, setCanvas] = useState<fabric.Canvas>();
   const [videoDuration, setVideoDuration] = useState<number>(10000);
   // this currentTime is ONLY used for displaying now.
@@ -32,6 +46,7 @@ const App = () => {
   const [activeYPos, setActiveYPos] = useState<number>(0);
   const [lyrics, setLyrics] = useState<string>("Test Lyrics\nTest Lyrics2");
 
+  // ------------------ Functions ------------------
   useEffect(() => {
     const canvas = new fabric.Canvas("canvas", {
       height: 540,
@@ -50,8 +65,8 @@ const App = () => {
     canvas.selectionLineWidth = 1.5;
     // Get any object by ID
     Canvas.prototype.getItemById = function (name) {
-      var object = null,
-        objects = this.getObjects();
+      var object = null;
+      var objects = this.getObjects();
       for (var i = 0, len = this.size(); i < len; i++) {
         if (objects[i].get("type") == "group") {
           if (objects[i].get("id") && objects[i].get("id") === name) {
@@ -59,12 +74,16 @@ const App = () => {
             break;
           }
           var wip = i;
-          for (var o = 0; o < objects[i]._objects.length; o++) {
+          for (
+            var o = 0;
+            o < (objects[i] as fabric.Group)._objects.length;
+            o++
+          ) {
             if (
-              objects[wip]._objects[o].id &&
-              objects[wip]._objects[o].id === name
+              (objects[wip] as fabric.Group)._objects[o].id &&
+              (objects[wip] as fabric.Group)._objects[o].id === name
             ) {
-              object = objects[wip]._objects[o];
+              object = (objects[wip] as fabric.Group)._objects[o];
               break;
             }
           }
@@ -209,9 +228,14 @@ const App = () => {
 
   const onLyricsSearchSuccess = (lyrics: string) => {
     // lyricsParseWithString(lyrics, canvas!, onLyricObjectsChange);
-    enhancedLyricsParseWithString(lyrics, canvas!, () => {});
+    enhancedLyricsParseWithString(
+      lyrics,
+      canvas!,
+      onEnhancedLyricObjectsChange
+    );
   };
 
+  // ------------------ RENDER ------------------
   return (
     <Container
       disableGutters={true}
@@ -237,7 +261,6 @@ const App = () => {
             label="XPos"
             type="number"
             value={activeXPos}
-            defaultValue={0}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               onPositionChange(event, "x");
             }}
@@ -250,7 +273,6 @@ const App = () => {
             label="YPos"
             type="number"
             value={activeYPos}
-            defaultValue={0}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               onPositionChange(event, "y");
             }}
@@ -270,7 +292,7 @@ const App = () => {
         <Box width="30%" height="100%">
           <GeneralPanel
             onPlayClick={() => {
-              paused = false;
+              globalPaused = false;
               animate(
                 true,
                 globalCurrentTime,
@@ -286,7 +308,7 @@ const App = () => {
               );
             }}
             onPauseClick={() => {
-              paused = true;
+              globalPaused = true;
             }}
             currentTime={currentTime}
             videoDuration={videoDuration}
@@ -296,7 +318,6 @@ const App = () => {
             onSeekToTimeChange={onSeekToTimeChange}
           ></GeneralPanel>
         </Box>
-
         <Box whiteSpace={"pre-wrap"} width="70%" height="100%">
           <WidgetPanel></WidgetPanel>
         </Box>
@@ -390,7 +411,7 @@ function reselect(selection: FabricObject, canvas: fabric.Canvas) {
   }
   if (selection.get("type") == "activeSelection") {
     var objs = [];
-    for (let so of selection._objects) {
+    for (let so of (selection as fabric.ActiveSelection)._objects) {
       for (let obj of canvas.getObjects()) {
         if (obj.get("id") === so.get("id")) {
           objs.push(obj);
@@ -426,9 +447,7 @@ const addRect = (canvas?: fabric.Canvas) => {
   canvas?.requestRenderAll();
 };
 
-/**
- * Creates a new fabric.Textbox object and adds it to the canvas.
- * Triggers when you use the "text" section.
+/**  Creates a new fabric.Textbox object and adds it to the canvas.
  * @param {string} text - The content of the text.
  * @param {number} x - The x-coordinate of the text.
  * @param {number} y - The y-coordinate of the text.
@@ -528,14 +547,13 @@ const calculateTextWidth = (
   if (!canvas) {
     console.error("[calculateTextWidth] canvas is undefined");
   }
-  let ctx = canvas!.getContext("2d");
+  let ctx = canvas!.getContext(); // remove "2d" --9.23, GEORGE
   ctx.font = font;
   // TODO: mysterious offset -- GEORGE
   return ctx!.measureText(text).width + 10;
 };
 
-/**
- * Animate timeline (or seek to specific point in time)
+/** Animate timeline (or seek to specific point in time)
  * IMPROVED BY CHATGPT -- GEORGE
  * @param play
  * @param currenttime
@@ -556,276 +574,269 @@ async function animate(
 ) {
   // anime.speed = 1;
 
-  let draggingPanel = false;
-  if (!draggingPanel) {
-    const starttime = new Date();
-    const offset = currenttime;
-    const inst = canvas;
+  const starttime = new Date();
+  const offset = currenttime;
+  const inst = canvas;
 
-    // handling keyframes
-    // keyframes.forEach((keyframe, index) => {
-    //   // Function to find the next keyframe in time from the same object & property
-    //   function nextKeyframe(keyframe, index) {
-    //     const sortedKeyframes = keyframes.slice().sort((a, b) => a.t - b.t);
-    //     const remainingKeyframes = sortedKeyframes.slice(
-    //       sortedKeyframes.findIndex((x) => x === keyframe) + 1
-    //     );
+  // handling keyframes
+  // keyframes.forEach((keyframe, index) => {
+  //   // Function to find the next keyframe in time from the same object & property
+  //   function nextKeyframe(keyframe, index) {
+  //     const sortedKeyframes = keyframes.slice().sort((a, b) => a.t - b.t);
+  //     const remainingKeyframes = sortedKeyframes.slice(
+  //       sortedKeyframes.findIndex((x) => x === keyframe) + 1
+  //     );
 
-    //     for (const kf of remainingKeyframes) {
-    //       if (kf.id === keyframe.id && kf.name === keyframe.name) {
-    //         return kf;
-    //       }
-    //     }
+  //     for (const kf of remainingKeyframes) {
+  //       if (kf.id === keyframe.id && kf.name === keyframe.name) {
+  //         return kf;
+  //       }
+  //     }
 
-    //     return false;
-    //   }
+  //     return false;
+  //   }
 
-    //   // Regroup if needed
-    //   const group = groups.find((x) => x.id === keyframe.id);
-    //   if (group) {
-    //     const object = canvas.getItemById(keyframe.id);
+  //   // Regroup if needed
+  //   const group = groups.find((x) => x.id === keyframe.id);
+  //   if (group) {
+  //     const object = canvas.getItemById(keyframe.id);
 
-    //     // Set object visibility based on current time and keyframe properties
-    //     const pKeyframe = p_keyframes.find((x) => x.id === keyframe.id);
-    //     const isVisible =
-    //       currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-    //       currenttime <= pKeyframe.end &&
-    //       currenttime <= duration;
+  //     // Set object visibility based on current time and keyframe properties
+  //     const pKeyframe = p_keyframes.find((x) => x.id === keyframe.id);
+  //     const isVisible =
+  //       currenttime >= pKeyframe.trimstart + pKeyframe.start &&
+  //       currenttime <= pKeyframe.end &&
+  //       currenttime <= duration;
 
-    //     object.set("visible", isVisible);
-    //     inst.renderAll();
+  //     object.set("visible", isVisible);
+  //     inst.renderAll();
 
-    //     if (isVisible) {
-    //       props.forEach((prop) => checkAnyKeyframe(keyframe.id, prop, inst));
-    //     }
-    //   }
+  //     if (isVisible) {
+  //       props.forEach((prop) => checkAnyKeyframe(keyframe.id, prop, inst));
+  //     }
+  //   }
 
-    //   // Function to set the value of an object's property
-    //   function setValue(prop, object, value, inst) {
-    //     if (object.get("assetType") === "audio" && play) {
-    //       if (object.get("src")) {
-    //         object.get("src").volume = value;
-    //         object.set("volume", value);
-    //       }
-    //       return;
-    //     }
+  //   // Function to set the value of an object's property
+  //   function setValue(prop, object, value, inst) {
+  //     if (object.get("assetType") === "audio" && play) {
+  //       if (object.get("src")) {
+  //         object.get("src").volume = value;
+  //         object.set("volume", value);
+  //       }
+  //       return;
+  //     }
 
-    //     if (object.get("type") !== "group") {
-    //       if (object.group) {
-    //         // Code for handling group properties (commented out for now)
-    //       }
-    //     }
+  //     if (object.get("type") !== "group") {
+  //       if (object.group) {
+  //         // Code for handling group properties (commented out for now)
+  //       }
+  //     }
 
-    //     // Set the property value
-    //     if (prop === "left" && !recording) {
-    //       object.set(prop, value + artboard.get("left"));
-    //     } else if (prop === "top" && !recording) {
-    //       object.set(prop, value + artboard.get("top"));
-    //     } else if (prop.startsWith("shadow.")) {
-    //       const shadowProp = prop.split(".")[1];
-    //       object.shadow[shadowProp] = value;
-    //     } else if (object.get("type") !== "group" || prop !== "width") {
-    //       object.set(prop, value);
-    //     }
+  //     // Set the property value
+  //     if (prop === "left" && !recording) {
+  //       object.set(prop, value + artboard.get("left"));
+  //     } else if (prop === "top" && !recording) {
+  //       object.set(prop, value + artboard.get("top"));
+  //     } else if (prop.startsWith("shadow.")) {
+  //       const shadowProp = prop.split(".")[1];
+  //       object.shadow[shadowProp] = value;
+  //     } else if (object.get("type") !== "group" || prop !== "width") {
+  //       object.set(prop, value);
+  //     }
 
-    //     inst.renderAll();
-    //   }
+  //     inst.renderAll();
+  //   }
 
-    //   const object = canvas.getItemById(keyframe.id);
+  //   const object = canvas.getItemById(keyframe.id);
 
-    //   // Handle keyframe animation
-    //   if (
-    //     keyframe.t >= time &&
-    //     currenttime >=
-    //       p_keyframes.find((x) => x.id === keyframe.id).trimstart +
-    //         p_keyframes.find((x) => x.id === keyframe.id).start
-    //   ) {
-    //     const lastKeyframe = keyframes
-    //       .slice(0, index)
-    //       .reverse()
-    //       .find((kf) => kf.id === keyframe.id && kf.name === keyframe.name);
-    //     const lastTime = lastKeyframe ? lastKeyframe.t : 0;
-    //     const lastProp = lastKeyframe
-    //       ? lastKeyframe.value
-    //       : objects
-    //           .find((x) => x.id === keyframe.id)
-    //           .defaults.find((x) => x.name === keyframe.name).value;
+  //   // Handle keyframe animation
+  //   if (
+  //     keyframe.t >= time &&
+  //     currenttime >=
+  //       p_keyframes.find((x) => x.id === keyframe.id).trimstart +
+  //         p_keyframes.find((x) => x.id === keyframe.id).start
+  //   ) {
+  //     const lastKeyframe = keyframes
+  //       .slice(0, index)
+  //       .reverse()
+  //       .find((kf) => kf.id === keyframe.id && kf.name === keyframe.name);
+  //     const lastTime = lastKeyframe ? lastKeyframe.t : 0;
+  //     const lastProp = lastKeyframe
+  //       ? lastKeyframe.value
+  //       : objects
+  //           .find((x) => x.id === keyframe.id)
+  //           .defaults.find((x) => x.name === keyframe.name).value;
 
-    //     if (lastKeyframe && lastKeyframe.t >= time && !play) return;
+  //     if (lastKeyframe && lastKeyframe.t >= time && !play) return;
 
-    //     const delay = play && lastTime > currenttime ? lastTime - time : 0;
+  //     const delay = play && lastTime > currenttime ? lastTime - time : 0;
 
-    //     const animation = { value: lastProp };
-    //     const instance = anime({
-    //       targets: animation,
-    //       delay: delay,
-    //       value: keyframe.value,
-    //       duration: keyframe.t - lastTime,
-    //       easing: keyframe.easing,
-    //       autoplay: false,
-    //       update: () => {
-    //         if (start && !paused) {
-    //           const pKeyframe = p_keyframes.find((x) => x.id === keyframe.id);
-    //           const isVisible =
-    //             currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-    //             currenttime <= pKeyframe.end &&
-    //             currenttime <= duration;
+  //     const animation = { value: lastProp };
+  //     const instance = anime({
+  //       targets: animation,
+  //       delay: delay,
+  //       value: keyframe.value,
+  //       duration: keyframe.t - lastTime,
+  //       easing: keyframe.easing,
+  //       autoplay: false,
+  //       update: () => {
+  //         if (start && !paused) {
+  //           const pKeyframe = p_keyframes.find((x) => x.id === keyframe.id);
+  //           const isVisible =
+  //             currenttime >= pKeyframe.trimstart + pKeyframe.start &&
+  //             currenttime <= pKeyframe.end &&
+  //             currenttime <= duration;
 
-    //           setValue(keyframe.name, object, animation.value, inst);
-    //           object.set("visible", isVisible);
-    //           inst.renderAll();
-    //         } else if (start && paused) {
-    //           anime.remove(animation);
-    //         }
-    //       },
-    //       changeBegin: () => {
-    //         start = true;
-    //       },
-    //     });
+  //           setValue(keyframe.name, object, animation.value, inst);
+  //           object.set("visible", isVisible);
+  //           inst.renderAll();
+  //         } else if (start && paused) {
+  //           anime.remove(animation);
+  //         }
+  //       },
+  //       changeBegin: () => {
+  //         start = true;
+  //       },
+  //     });
 
-    //     instance.seek(time - lastTime <= 0 ? 0 : time - lastTime);
+  //     instance.seek(time - lastTime <= 0 ? 0 : time - lastTime);
 
-    //     if (play) instance.play();
-    //     else if (
-    //       parseFloat(lastTime) <= parseFloat(time) &&
-    //       parseFloat(keyframe.t) >= parseFloat(time)
-    //     ) {
-    //       setValue(keyframe.name, object, animation.value, inst);
-    //     }
-    //   } else if (keyframe.t < time && !nextKeyframe(keyframe, index)) {
-    //     const prop = keyframe.name;
-    //     const currentVal = prop.startsWith("shadow.")
-    //       ? object.shadow[prop.split(".")[1]]
-    //       : object.get(prop);
+  //     if (play) instance.play();
+  //     else if (
+  //       parseFloat(lastTime) <= parseFloat(time) &&
+  //       parseFloat(keyframe.t) >= parseFloat(time)
+  //     ) {
+  //       setValue(keyframe.name, object, animation.value, inst);
+  //     }
+  //   } else if (keyframe.t < time && !nextKeyframe(keyframe, index)) {
+  //     const prop = keyframe.name;
+  //     const currentVal = prop.startsWith("shadow.")
+  //       ? object.shadow[prop.split(".")[1]]
+  //       : object.get(prop);
 
-    //     if (currentVal !== keyframe.value) {
-    //       setValue(keyframe.name, object, keyframe.value, inst);
-    //     }
-    //   }
-    // });
+  //     if (currentVal !== keyframe.value) {
+  //       setValue(keyframe.name, object, keyframe.value, inst);
+  //     }
+  //   }
+  // });
 
-    // Additional code for handling visibility and animations
-    objects.forEach((object) => {
-      if (!object.id.includes("Group")) {
-        const object2 = canvas.getItemById(object.id);
-        const pKeyframe = p_keyframes.find(
-          (x) => x.id === object.id
-        ) as PKeyframe;
-        const isVisible =
-          currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-          currenttime <= pKeyframe.end &&
-          currenttime <= duration;
+  // Additional code for handling visibility and animations
+  objects.forEach((object) => {
+    if (!object.id.includes("Group")) {
+      const object2 = canvas.getItemById(object.id);
+      const pKeyframe = p_keyframes.find(
+        (x) => x.id === object.id
+      ) as PKeyframe;
+      const isVisible =
+        currenttime >= pKeyframe.trimstart + pKeyframe.start &&
+        currenttime <= pKeyframe.end &&
+        currenttime <= duration;
 
-        object2?.set("visible", isVisible);
-        inst.renderAll();
-        if (isVisible) {
-          props.forEach((prop) =>
-            checkAnyKeyframe(object.id, prop, inst, objects)
-          );
-        }
+      object2?.set("visible", isVisible);
+      inst.renderAll();
+      if (isVisible) {
+        props.forEach((prop) =>
+          checkAnyKeyframe(object.id, prop, inst, objects)
+        );
       }
-
-      // const obj = canvas.getItemById(object.id);
-      // if (obj.type === "lottie") {
-      //   obj.goToSeconds(currenttime);
-      //   inst.renderAll();
-      // }
-    });
-
-    inst.renderAll();
-
-    // if (animatedtext.length > 0) {
-    //   animatedtext.forEach((text) => {
-    //     text.seek(currenttime, canvas);
-    //     inst.renderAll();
-    //   });
-    // }
-    // playVideos(time);
-    if (play)
-      playAudio(
-        currenttime,
-        objects,
-        canvas!,
-        p_keyframes,
-        currenttime,
-        duration
-      );
-
-    if (play && !paused) {
-      const animation = { value: 0 };
-      // initializes a new animation (inside animate())
-      const mainInstance = anime({
-        targets: animation,
-        value: [currenttime, duration],
-        duration: duration - currenttime,
-        easing: "linear",
-        autoplay: true,
-        update: () => {
-          if (!paused) {
-            currenttime = animation.value;
-            if (onTimeChange) {
-              onTimeChange(currenttime);
-            }
-            // console.log(
-            //   "[animate] animation update! current time: " + currenttime
-            // );
-            // if (animatedtext.length > 0) {
-            //   animatedtext.forEach((text) => {
-            //     text.seek(currenttime, canvas);
-            //     inst.renderAll();
-            //   });
-            // }
-            objects.forEach((object) => {
-              if (!object.id.includes("Group")) {
-                const object2 = inst.getItemById(object.id);
-                const pKeyframe = p_keyframes.find(
-                  (x) => x.id === object.id
-                ) as PKeyframe;
-                const isVisible =
-                  currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-                  currenttime <= pKeyframe.end &&
-                  currenttime <= duration;
-
-                object2?.set("visible", isVisible);
-                inst.renderAll();
-
-                if (isVisible) {
-                  props.forEach((prop) =>
-                    checkAnyKeyframe(object.id, prop, inst, objects)
-                  );
-                }
-              }
-
-              // const obj = canvas.getItemById(object.id);
-              // if (obj.type === "lottie") {
-              //   obj.goToSeconds(currenttime);
-              //   inst.renderAll();
-              // }
-            });
-
-            inst.renderAll();
-
-            // if (!recording) {
-            //   renderTime();
-            //   $("#seekbar").css({
-            //     left: currenttime / timelinetime + offset_left,
-            //   });
-            // }
-          } else {
-            paused = true;
-            globalCurrentTime = currenttime;
-            animation.value = duration + 1;
-            anime.remove(animation);
-          }
-        },
-        complete: () => {
-          paused = true;
-          globalCurrentTime = 0;
-        },
-      });
-    } else if (paused) {
-      globalCurrentTime = currenttime;
     }
+
+    // const obj = canvas.getItemById(object.id);
+    // if (obj.type === "lottie") {
+    //   obj.goToSeconds(currenttime);
+    //   inst.renderAll();
+    // }
+  });
+
+  inst.renderAll();
+
+  // if (animatedtext.length > 0) {
+  //   animatedtext.forEach((text) => {
+  //     text.seek(currenttime, canvas);
+  //     inst.renderAll();
+  //   });
+  // }
+  // playVideos(time);
+  if (play) {
+    playAudio(
+      currenttime,
+      objects,
+      canvas!,
+      p_keyframes,
+      currenttime,
+      duration
+    );
+  }
+
+  if (play && !globalPaused) {
+    const animation = { value: 0 };
+    // initializes a new animation (inside animate())
+    const mainInstance = anime({
+      targets: animation,
+      value: [currenttime, duration],
+      duration: duration - currenttime,
+      easing: "linear",
+      autoplay: true,
+      update: () => {
+        if (!globalPaused) {
+          currenttime = animation.value;
+          if (onTimeChange) {
+            onTimeChange(currenttime);
+          }
+          // console.log(
+          //   "[animate] animation update! current time: " + currenttime
+          // );
+          // if (animatedtext.length > 0) {
+          //   animatedtext.forEach((text) => {
+          //     text.seek(currenttime, canvas);
+          //     inst.renderAll();
+          //   });
+          // }
+          objects.forEach((object) => {
+            if (!object.id.includes("Group")) {
+              const object2 = inst.getItemById(object.id);
+              const pKeyframe = p_keyframes.find(
+                (x) => x.id === object.id
+              ) as PKeyframe;
+              const isVisible =
+                currenttime >= pKeyframe.trimstart + pKeyframe.start &&
+                currenttime <= pKeyframe.end &&
+                currenttime <= duration;
+              object2?.set("visible", isVisible);
+              inst.renderAll();
+              if (isVisible) {
+                props.forEach((prop) =>
+                  checkAnyKeyframe(object.id, prop, inst, objects)
+                );
+              }
+            }
+            // const obj = canvas.getItemById(object.id);
+            // if (obj.type === "lottie") {
+            //   obj.goToSeconds(currenttime);
+            //   inst.renderAll();
+            // }
+          });
+          inst.renderAll();
+          // if (!recording) {
+          //   renderTime();
+          //   $("#seekbar").css({
+          //     left: currenttime / timelinetime + offset_left,
+          //   });
+          // }
+        } else {
+          globalPaused = true; // this is the global paused variable
+          globalCurrentTime = currenttime;
+          animation.value = duration + 1;
+          anime.remove(animation);
+        }
+      },
+      complete: () => {
+        globalPaused = true;
+        globalCurrentTime = 0;
+      },
+    });
+  } else if (globalPaused) {
+    globalCurrentTime = currenttime;
   }
 }
 
@@ -933,14 +944,13 @@ function setObjectValue(
   inst.renderAll();
 }
 
-/**
- * Create a Layer (which is a row in the timeline).
+/** Create a Layer (which is a row in the timeline).
  * AUTOIMPROVED BY CHATGPT -- GEORGE
  * @param {fabric.Object} object
  */
 function newLayer(
-  newObject: fabric.Object,
-  objects: fabric.Object[],
+  newObject: FabricObject,
+  objects: LygenObject[],
   p_keyframes: PKeyframe[],
   canvas: fabric.Canvas,
   duration: number,
@@ -970,17 +980,18 @@ function newLayer(
     ["video", "audio"].includes(newObject.get("assetType")) ||
     newObject.get("type") == "lottie"
   ) {
-    objects.push({
-      object: newObject,
-      id: newObject.get("id"),
-      label: newObject.get("id"),
-      color: color,
-      defaults: [],
-      locked: [],
-      mask: "none",
-      start: 0,
-      end: newObject.get("duration"),
-    });
+    var pushObject = new LygenObject(
+      newObject.get("id"),
+      newObject,
+      "",
+      color,
+      "none",
+      [],
+      [],
+      0,
+      newObject.get("duration")
+    );
+    objects.push(pushObject);
 
     // Handle keyframes for video/audio objects
     const end =
@@ -1000,15 +1011,16 @@ function newLayer(
         JSON.stringify(p_keyframes, null, 2)
     );
   } else {
-    objects.push({
-      object: newObject,
-      id: newObject.get("id"),
-      label: newObject.get("id"),
-      color: color,
-      defaults: [],
-      locked: [],
-      mask: "none",
-    });
+    var pushObject = new LygenObject(
+      newObject.get("id"),
+      newObject,
+      newObject.get("id"),
+      color,
+      "none",
+      [],
+      []
+    );
+    objects.push(pushObject);
 
     // Handle keyframes for non-video/audio objects
     const start = newObject.get("notnew")
@@ -1089,7 +1101,12 @@ function newLayer(
   // console.log("[newLayer] before animate, object left and top: " + object.get('left') + " " + object.get('top'));
 
   // Initialize animations and save the state
-  objects.find((x) => x.id == newObject.id).animate = [];
+  const foundObject = objects.find((x) => x.id == newObject.id);
+  if (foundObject) {
+    foundObject.animate = (animatable, options) => {
+      return {};
+    };
+  }
   animate(false, currenttime, canvas, objects, p_keyframes, duration);
   // console.log("[newLayer] after animate, object left and top: " + object.get('left') + " " + object.get('top'));
   // save();
@@ -1097,6 +1114,7 @@ function newLayer(
   console.log("[newLayer] layer created, newLayer() ends");
 }
 
+// ------------------ LYRICS PARSING ------------------
 function lyricsParse(
   file: File,
   canvas: fabric.Canvas,
@@ -1174,6 +1192,7 @@ function enhancedLyricsParse(
     enhancedLyricsParseWithString(lyrics as string, canvas, onLyricsUpload);
   };
 }
+
 function enhancedLyricsParseWithString(
   lyrics: String,
   canvas: fabric.Canvas,
@@ -1231,7 +1250,9 @@ function enhancedLyricsParseWithString(
     while (!hasReachedEnd) {
       exeSafety++;
       if (exeSafety > 1000) {
-        console.log("Safety break");
+        console.log(
+          "Safety break -- there is something wrong with the lyrics parsing."
+        );
         break;
       }
       var nextWordIndex = findNextInvalidCharacterIndex(line, currentIndex);
@@ -1262,7 +1283,6 @@ function enhancedLyricsParseWithString(
           hasReachedEnd ? line.length : nextLeftBracket
         )
         .trim();
-
       console.log(
         "[lyrics] word: " +
           word +
@@ -1283,6 +1303,7 @@ function enhancedLyricsParseWithString(
       console.log("new lyrics: " + lyrics.getText());
       currentIndex = nextRightBracket + 1;
 
+      // This is the previous implementation, which is not working for specific patterns of lyrics. --GEORGE
       // var nextLeftBracket = line.indexOf("<", currentIndex);
       // var nextRightBracket = line.indexOf(">", currentIndex);
       // var nextNextLeftBracket = line.indexOf("<", nextRightBracket);
@@ -1318,7 +1339,7 @@ function enhancedLyricsParseWithString(
   });
 
   // loop over the lyrics objects, combine words into lines, and calculate the width of the line
-  let ctx = canvas!.getContext("2d");
+  let ctx = canvas!.getContext();
   ctx.font = "400 24px Source Sans Pro";
   var widthOfSpace = ctx.measureText(" ").width + 0;
   let lineWidths: number[] = [];
@@ -1349,7 +1370,7 @@ function enhancedLyricsParseWithString(
   var currentLineIndex = 0;
   var centerX = 480;
   var nextXPos = 480 - lineWidths[currentLineIndex] / 2;
-  console.log("INITIAL POSITION: " + nextXPos);
+  console.log("[enhancedLPwString] INITIAL POSITION: " + nextXPos);
   lyricsObjects.forEach(function (word, index) {
     var endTime = word.enhancedSentenceEndTime * 1000;
     nextXPos += ctx.measureText(word.getText()).width / 2 + 0;
@@ -1449,7 +1470,7 @@ function playAudio(
         autoplay: true,
         update: async function () {
           currenttime = animation.value;
-          if (start && !paused) {
+          if (start && !globalPaused) {
             let this_pkey = p_keyframes.find((x) => x.id == object.id);
             if (!this_pkey) {
               return;
@@ -1492,12 +1513,15 @@ function playAudio(
                 // this original code seems to try to prevent the audio from multi-playing by setting flag = true. It does not work now, however -- it only pauses the active audio. --GEORGE
               }
             }
-          } else if (paused) {
+          } else if (globalPaused) {
             console.log("[playAudio] now pausing audio");
-            if (obj.get("src")) {
-              console.log("[playAudio] pausing audio 2");
-              obj.get("src").pause();
-              anime.remove(animation);
+            if (!obj) {
+            } else {
+              if (obj.get("src")) {
+                console.log("[playAudio] pausing audio 2");
+                obj.get("src").pause();
+                anime.remove(animation);
+              }
             }
           }
         },
@@ -1507,6 +1531,54 @@ function playAudio(
       });
     }
   });
+}
+
+function addAnimatedText(x: number, y: number, canvas: fabric.Canvas) {
+  var newtext = new AnimatedText("Your text", {
+    left: x,
+    top: y,
+    preset: "slide top", // TODO: For now -- GEORGE
+    typeAnim: "letter",
+    order: "forward",
+    fontFamily: "Syne",
+    duration: 1000,
+    easing: "easeInQuad",
+    fill: "#FFFFFF",
+  });
+  allAnimatedTexts.push(newtext);
+  newtext.renderAnimatedText(canvas);
+}
+
+function deleteObject(object: FabricObject, def = true, canvas: fabric.Canvas) {
+  if (object.get("assetType") == "animatedText" && def) {
+    var animatedtext = $.grep(allAnimatedTexts, function (a) {
+      return a.id != object.id;
+    });
+  }
+  if (object.type == "image") {
+    // var temp = files.find((x) => x.name == object.get("id"));
+    // files = $.grep(files, function (a) {
+    //   return a != temp.name;
+    // });
+  }
+  $(".layer[data-object='" + object.get("id") + "']").remove();
+  $("#" + object.get("id")).remove();
+  // keyframes = $.grep(keyframes, function (e) {
+  //   return e.id != object.get("id");
+  // });
+  var this_p_keyframes = $.grep(p_keyframes, function (e) {
+    return e.id != object.get("id");
+  });
+  var objects = $.grep(allObjects, function (e) {
+    return e.id != object.get("id");
+  });
+  canvas.remove(object);
+  canvas.renderAll();
+  canvas.discardActiveObject();
+  // save();
+  if (objects.length == 0) {
+    $("#nolayers").removeClass("yaylayers");
+  }
 }
 
 export default App;

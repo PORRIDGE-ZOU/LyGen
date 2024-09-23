@@ -1,5 +1,7 @@
 import { PKeyframe } from "./types";
 import * as fabric from "fabric";
+import { FabricObject } from "fabric";
+import { LygenObject } from "./types";
 
 /**
  * All the possible properties of an object
@@ -39,4 +41,5 @@ export const props = [
  * }>}
  */
 export const p_keyframes: PKeyframe[] = [];
-export const allObjects: fabric.Object[] = [];
+export const allObjects: LygenObject[] = [];
+export const allAnimatedTexts: FabricObject[] = [];
