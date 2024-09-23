@@ -1669,6 +1669,10 @@ export function deleteObject(
 export default App;
 
 /**
- * Feedback for poster from group meeting
- * Online lyric video maker -> generic/existing makers
+ * TODOs:
+ * - weird bug saying rgb is incorrect. Maybe it's because now we've switched to Animated Texts,
+ * the default set of color is not correct after populating in the texts.
+ * - the last line is not displayed properly.
+ * - It's still kinda stuck and laggy. Maybe it's because of the way we're rendering the textboxes?
+ * - We should have a timing offset for the words to start earlier than the actual time.
  */
