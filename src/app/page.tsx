@@ -1,7 +1,7 @@
 "use client"; // next.js app router
 
 // ------------------ IMPORTS ------------------
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, act } from "react";
 import * as fabric from "fabric";
 import { FabricObject, Canvas } from "fabric";
 import { Box, Button, Container, Typography, TextField } from "@mui/material";
@@ -18,18 +18,21 @@ import {
   p_keyframes,
   allObjects,
   allAnimatedTexts,
+  activeLyrics,
 } from "@/components/globals";
 import ColorPickerInput from "@/components/ColorPickerInput";
 import LyricsColumn from "@/components/LyricsColumn";
 import LyricSearch from "@/components/LyricsSearch";
 import GeneralPanel from "@/components/GeneralPanel";
 import WidgetPanel from "@/components/WidgetPanel";
+import { Allan } from "next/font/google";
+import { map } from "jquery";
 
 // ------------------ GLOBAL VARIABLES ------------------
 let globalPaused = false;
 let currentIndex = 0;
 let globalDuration = 0;
-let globalCurrentTime = 0;
+export let globalCurrentTime = 0;
 
 // ------------------ MAIN COMPONENT ------------------
 const App = () => {
@@ -118,6 +121,11 @@ const App = () => {
       let fill = active?.get("fill");
       setFillColor(fill!);
       setFillText(fill!);
+
+      let text = active?.get("text");
+      if (text) {
+        console.log("[canvasSetup] active text: ", text);
+      }
     });
   }
 
@@ -563,7 +571,7 @@ const calculateTextWidth = (
  * @param duration
  * @param onTimeChange
  */
-async function animate(
+export async function animate(
   play: boolean,
   currenttime: number,
   canvas: fabric.Canvas,
@@ -750,12 +758,17 @@ async function animate(
 
   inst.renderAll();
 
-  // if (animatedtext.length > 0) {
-  //   animatedtext.forEach((text) => {
-  //     text.seek(currenttime, canvas);
-  //     inst.renderAll();
-  //   });
-  // }
+  // HANDLE ANIMATED TEXT
+  if (allAnimatedTexts.length > 0) {
+    let active = findCurrentLyrics(currenttime);
+    if (allAnimatedTexts.length > 0) {
+      let active = findCurrentLyrics(currenttime);
+      active?.forEach((text) => {
+        text.seek(currenttime, canvas);
+        inst.renderAll();
+      });
+    }
+  }
   // playVideos(time);
   if (play) {
     playAudio(
@@ -783,15 +796,14 @@ async function animate(
           if (onTimeChange) {
             onTimeChange(currenttime);
           }
-          // console.log(
-          //   "[animate] animation update! current time: " + currenttime
-          // );
-          // if (animatedtext.length > 0) {
-          //   animatedtext.forEach((text) => {
-          //     text.seek(currenttime, canvas);
-          //     inst.renderAll();
-          //   });
-          // }
+          // NOTE: TODO: Note here that instead of looping over the entire AnimatedText array (which Motionity does), we only loop over the activeLyrics array. This is much more optimized for performance. Maybe there is a better method. -- GEORGE
+          if (allAnimatedTexts.length > 0) {
+            let active = findCurrentLyrics(currenttime);
+            active?.forEach((text) => {
+              text.seek(currenttime, canvas);
+              inst.renderAll();
+            });
+          }
           objects.forEach((object) => {
             if (!object.id.includes("Group")) {
               const object2 = inst.getItemById(object.id);
@@ -948,7 +960,7 @@ function setObjectValue(
  * AUTOIMPROVED BY CHATGPT -- GEORGE
  * @param {fabric.Object} object
  */
-function newLayer(
+export function newLayer(
   newObject: FabricObject,
   objects: LygenObject[],
   p_keyframes: PKeyframe[],
@@ -957,7 +969,7 @@ function newLayer(
   currenttime: number
 ) {
   // layer_count++;
-  var color: string = "red";
+  var color: string = "#FFFFFF";
 
   // Determine the color based on the object's type and assetType
   if (newObject.get("type") == "image") {
@@ -1371,23 +1383,43 @@ function enhancedLyricsParseWithString(
   var centerX = 480;
   var nextXPos = 480 - lineWidths[currentLineIndex] / 2;
   console.log("[enhancedLPwString] INITIAL POSITION: " + nextXPos);
+  let mapEntries: [number, AnimatedText[]][] = [];
   lyricsObjects.forEach(function (word, index) {
     var endTime = word.enhancedSentenceEndTime * 1000;
     nextXPos += ctx.measureText(word.getText()).width / 2 + 0;
 
-    newTextbox(
-      24,
-      400,
+    // newTextbox(
+    //   24,
+    //   400,
+    //   word.getText(),
+    //   nextXPos,
+    //   270,
+    //   200,
+    //   false,
+    //   "Source Sans Pro",
+    //   canvas,
+    //   word.getTimeInSeconds() * 1000,
+    //   endTime
+    // );
+
+    let newtext = addAnimatedText(
       word.getText(),
       nextXPos,
       270,
-      200,
-      false,
-      "Source Sans Pro",
       canvas,
       word.getTimeInSeconds() * 1000,
       endTime
     );
+    if (mapEntries.length == 0) {
+      mapEntries.push([endTime, [newtext]]);
+    } else {
+      let lastEntry = mapEntries[mapEntries.length - 1];
+      if (lastEntry[0] == endTime) {
+        lastEntry[1].push(newtext);
+      } else {
+        mapEntries.push([endTime, [newtext]]);
+      }
+    }
 
     if (word.isEnhancedSentenceEnd) {
       currentLineIndex++;
@@ -1405,6 +1437,12 @@ function enhancedLyricsParseWithString(
       console.log("current next xpos: " + nextXPos);
     }
   });
+
+  // NOTE: populate the activeLyrics map in a SORTED way. Hence, later when we seek the active lyrics, we can do a binary search without sorting. -- GEORGE
+  mapEntries.sort((a, b) => a[0] - b[0]);
+  for (let [key, value] of mapEntries) {
+    activeLyrics.set(key, value);
+  }
 
   canvas.renderAll();
   onLyricsUpload(lyricsObjects);
@@ -1533,23 +1571,70 @@ function playAudio(
   });
 }
 
-function addAnimatedText(x: number, y: number, canvas: fabric.Canvas) {
-  var newtext = new AnimatedText("Your text", {
+function addAnimatedText(
+  text: string,
+  x: number,
+  y: number,
+  canvas: fabric.Canvas,
+  startTime?: number,
+  endTime?: number
+) {
+  var newtext = new AnimatedText(text, "AnimText" + currentIndex++, {
     left: x,
     top: y,
     preset: "slide top", // TODO: For now -- GEORGE
     typeAnim: "letter",
     order: "forward",
-    fontFamily: "Syne",
-    duration: 1000,
+    fontFamily: "Source Sans Pro",
+    duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
     easing: "easeInQuad",
     fill: "#FFFFFF",
   });
   allAnimatedTexts.push(newtext);
-  newtext.renderAnimatedText(canvas);
+  newtext.renderAnimatedText(canvas, startTime, endTime);
+  return newtext;
 }
 
-function deleteObject(object: FabricObject, def = true, canvas: fabric.Canvas) {
+function findCurrentLyrics(time: number) {
+  // NOTE: No need to sort, as the activeLyrics map is already sorted when we populate it -- GEORGE
+  // let keys = Array.from(activeLyrics.keys()).sort((a, b) => a - b); // Sorting if not already sorted
+  let keys = Array.from(activeLyrics.keys());
+  function findClosestGreaterOrEqual(
+    keys: number[],
+    target: number
+  ): number | null {
+    let low = 0;
+    let high = keys.length - 1;
+    let result: number | null = null;
+
+    while (low <= high) {
+      let mid = Math.floor((low + high) / 2);
+
+      if (keys[mid] === target) {
+        return keys[mid]; // Exact match
+      } else if (keys[mid] > target) {
+        result = keys[mid]; // Store potential result
+        high = mid - 1; // Search in the lower half
+      } else {
+        low = mid + 1; // Search in the upper half
+      }
+    }
+
+    return result; // This will be the smallest key larger than or equal to the target
+  }
+  let closestKey = findClosestGreaterOrEqual(keys, time);
+  if (closestKey) {
+    return activeLyrics.get(closestKey);
+  } else {
+    return [];
+  }
+}
+
+export function deleteObject(
+  object: FabricObject,
+  def = true,
+  canvas: fabric.Canvas
+) {
   if (object.get("assetType") == "animatedText" && def) {
     var animatedtext = $.grep(allAnimatedTexts, function (a) {
       return a.id != object.id;

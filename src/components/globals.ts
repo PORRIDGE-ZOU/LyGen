@@ -1,4 +1,4 @@
-import { PKeyframe } from "./types";
+import { AnimatedText, PKeyframe } from "./types";
 import * as fabric from "fabric";
 import { FabricObject } from "fabric";
 import { LygenObject } from "./types";
@@ -43,3 +43,4 @@ export const props = [
 export const p_keyframes: PKeyframe[] = [];
 export const allObjects: LygenObject[] = [];
 export const allAnimatedTexts: FabricObject[] = [];
+export const activeLyrics: Map<number, AnimatedText[]> = new Map();

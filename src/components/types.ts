@@ -2,7 +2,6 @@ import { FabricObject, FabricText } from "fabric";
 import anime from "animejs";
 import * as fabric from "fabric";
 import { allObjects, p_keyframes } from "./globals";
-import { Fab } from "@mui/material";
 
 declare module "fabric" {
   interface Canvas {
@@ -16,6 +15,10 @@ declare module "fabric" {
     mask?: string;
     id: string;
     defaults: Array<{ name: string; value: any }>;
+    defaultLeft?: number;
+    defaultTop?: number;
+    defaultScaleX?: number;
+    defaultScaleY?: number;
   }
 
   interface GroupProps {
@@ -82,6 +85,16 @@ export class LyricsLine {
   isEnhancedSentenceEnd = false;
   enhancedWordEndTime = 0;
   enhancedSentenceEndTime = 0;
+  /**
+   *
+   * @param text
+   * @param timeString
+   * @param enhanced
+   * @param isEnhancedSentenceEnd
+   * @param enhancedWordEndString This will be converted to seconds
+   * @param enhancedSentenceEndString same as above
+   * @returns
+   */
   constructor(
     text: string,
     timeString: string,
@@ -105,20 +118,14 @@ export class LyricsLine {
       );
     } else {
       this.enhancedWordEndTime = this.timeInSeconds + 5;
-      // console.log(
-      //   "enhancedWordEndString is empty. Set to " + this.enhancedWordEndTime
-      // );
     }
+    // NOTE: for now, sentence ends with all words. -- GEORGE
     if (enhancedSentenceEndString != "") {
       this.enhancedSentenceEndTime = this.convertTimeToSeconds(
         enhancedSentenceEndString
       );
     } else {
       this.enhancedSentenceEndTime = this.timeInSeconds + 5;
-      // console.log(
-      //   "enhancedSentenceEndString is empty. Set to " +
-      //     this.enhancedSentenceEndTime
-      // );
     }
   }
   getText() {
@@ -139,34 +146,7 @@ export class LyricsLine {
   }
 }
 
-// Assuming these are defined elsewhere in your codebase
-declare var currenttime: number;
-declare var artboard: { left: number; top: number };
-declare var layer_count: number;
-
-// Utility functions assumed to exist
-declare function newLayer(
-  newObject: FabricObject,
-  objects: FabricObject[],
-  p_keyframes: PKeyframe[],
-  canvas: fabric.Canvas,
-  duration: number,
-  currenttime: number
-): void;
-declare function deleteObject(
-  obj: FabricObject,
-  flag: boolean,
-  canvas: fabric.Canvas
-): void;
-declare function animate(
-  play: boolean,
-  currenttime: number,
-  canvas: fabric.Canvas,
-  objects: fabric.Object[],
-  p_keyframes: PKeyframe[],
-  duration: number,
-  onTimeChange?: (time: number) => void
-): void;
+import { newLayer, deleteObject, animate, globalCurrentTime } from "@/app/page";
 // declare function save(): void;
 
 interface AnimationProps {
@@ -199,11 +179,11 @@ function animateText(
     if (props.order == "backward") {
       index = length - i - 1;
     }
-    let item = group.item(index) as any;
-    let left = item.defaultLeft;
-    let top = item.defaultTop;
-    let scaleX = item.defaultScaleX;
-    let scaleY = item.defaultScaleY;
+    let item = group.item(index) as FabricText;
+    let left = item.defaultLeft!;
+    let top = item.defaultTop!;
+    let scaleX = item.defaultScaleX!;
+    let scaleY = item.defaultScaleY!;
     var duration = props.duration / length;
     var delay = i * duration;
     var animation = {
@@ -284,9 +264,10 @@ function animateText(
         scaleX: animation.scaleX,
         scaleY: animation.scaleY,
       });
-      cv.renderAll();
+      // cv.renderAll();
     }
   }
+  cv.renderAll();
 }
 
 function setText(
@@ -312,7 +293,7 @@ function renderText(
   cv: fabric.Canvas,
   id: string,
   isnew: boolean,
-  start: number,
+  // start: number,
   startTime?: number,
   endTime?: number
 ): string {
@@ -325,6 +306,8 @@ function renderText(
       top: 0,
       fill: props.fill,
       fontFamily: props.fontFamily,
+      fontSize: 24,
+      fontWeight: 400,
       opacity: 1,
     }) as any;
     text.set({
@@ -347,14 +330,14 @@ function renderText(
   }
 
   var result = new fabric.Group(groupItems, {
-    stroke: "#000",
+    stroke: "#FFFFFF",
     strokeUniform: true,
     paintFirst: "stroke",
     strokeWidth: 0,
     originX: "center",
     originY: "center",
-    left: x - artboard.left,
-    top: y - artboard.top,
+    left: x,
+    top: y,
     cursorWidth: 1,
     cursorDuration: 1,
     cursorDelay: 250,
@@ -367,13 +350,21 @@ function renderText(
   if (isnew) {
     result.set({
       notnew: true,
-      starttime: start,
+      starttime: startTime,
+      endtime: endTime,
     });
   }
   result.objectCaching = false;
   cv.add(result);
   cv.renderAll();
-  newLayer(result, allObjects, p_keyframes, cv, props.duration, currenttime);
+  newLayer(
+    result,
+    allObjects,
+    p_keyframes,
+    cv,
+    props.duration,
+    globalCurrentTime
+  );
 
   result._objects.forEach(function (object: any, index: number) {
     result.item(index).set({
@@ -393,11 +384,11 @@ export class AnimatedText extends FabricObject {
   id: string;
   inst?: string;
 
-  constructor(text: string, props: AnimationProps) {
+  constructor(text: string, id: string, props: AnimationProps) {
     super();
     this.text = text;
     this.props = props;
-    this.id = "Text" + layer_count;
+    this.id = id;
   }
 
   // NOTE: I changed the name of the function to renderAnimatedText!! -- GEORGE
@@ -409,14 +400,13 @@ export class AnimatedText extends FabricObject {
       this.props.top!,
       cv,
       this.id,
-      false,
-      0,
+      true, //TRUE! because we want to set the start and end time -- GEORGE
       startTime,
       endTime
     );
     animateText(
       cv.getItemById(this.id) as fabric.Group,
-      currenttime,
+      globalCurrentTime,
       false,
       this.props,
       cv,
@@ -488,13 +478,13 @@ export class AnimatedText extends FabricObject {
     cv.renderAll();
     animateText(
       cv.getItemById(this.id) as fabric.Group,
-      currenttime,
+      globalCurrentTime,
       false,
       this.props,
       cv,
       this.id
     );
-    animate(false, currenttime, cv, allObjects, p_keyframes, 0);
+    animate(false, globalCurrentTime, cv, allObjects, p_keyframes, 0);
     // save();
   }
 
