@@ -1,7 +1,7 @@
 "use client"; // next.js app router
 
 // ------------------ IMPORTS ------------------
-import React, { useState, useEffect, act } from "react";
+import React, { useState, useEffect } from "react";
 import * as fabric from "fabric";
 import { FabricObject, Canvas } from "fabric";
 import { Box, Button, Container, Typography, TextField } from "@mui/material";
@@ -27,13 +27,14 @@ import {
   enhancedLyricsParseWithString,
   findCurrentLyrics,
 } from "@/helpers/lyricsParsing";
-import ColorPickerInput from "@/components/ColorPickerInput";
 import LyricsColumn from "@/components/LyricsColumn";
 import LyricSearch from "@/components/LyricsSearch";
 import GeneralPanel from "@/components/GeneralPanel";
 import WidgetPanel from "@/components/WidgetPanel";
+import InfoPanel from "@/components/InfoPanel";
 import { reselect } from "@/helpers/canvasMisc";
 import { animate } from "@/helpers/animation";
+import { set } from "animejs";
 
 // ------------------ MAIN COMPONENT ------------------
 const App = () => {
@@ -42,8 +43,6 @@ const App = () => {
   const [videoDuration, setVideoDuration] = useState<number>(10000);
   // this currentTime is ONLY used for displaying now. This should exist because we want to re-render the UI when the time changes. -- GEORGE
   const [currentTime, setCurrentTime] = useState<number>(0);
-  const [testStart, setTestStart] = useState<number>(2000);
-  const [testEnd, setTestEnd] = useState<number>(5000);
   const [filltext, setFillText] = useState("#ffffff");
   const [fillcolor, setFillColor] = useState("#ffffff");
   const [activeXPos, setActiveXPos] = useState<number>(0);
@@ -55,7 +54,7 @@ const App = () => {
     const canvas = new fabric.Canvas("canvas", {
       height: 540,
       width: 960,
-      backgroundColor: "black",
+      backgroundColor: "#000000",
     });
 
     // settings for all canvas in the app
@@ -112,20 +111,49 @@ const App = () => {
 
   function canvasSetup(canvas: fabric.Canvas) {
     canvas.on("selection:created", (e) => {
-      console.log("[canvasSetup] selection created");
       let active = canvas.getActiveObject();
-      console.log("[canvasSetup] active object: ", active);
       let x = active?.get("left");
       let y = active?.get("top");
       setActiveXPos(x!);
       setActiveYPos(y!);
       let fill = active?.get("fill");
       setFillColor(fill!);
-      setFillText(fill!);
 
       let text = active?.get("text");
       if (text) {
         console.log("[canvasSetup] active text: ", text);
+      }
+    });
+
+    canvas.on("selection:updated", (e) => {
+      let active = canvas.getActiveObject();
+      let x = active?.get("left");
+      let y = active?.get("top");
+      setActiveXPos(x!);
+      setActiveYPos(y!);
+      let fill = active?.get("fill");
+
+      // TODO: I temporarily used this same code as in ColorPickerInput.tsx. We should refactor this into a helper function? The reason why I don't use onColorChange() is because that has a strange reselection bug. -- GEORGE
+      if (fill.startsWith("rgb") && fill.includes(",") && fill.includes(")")) {
+        const rgbValues = fill
+          .substring(fill.indexOf("(") + 1, fill.indexOf(")"))
+          .split(",")
+          .map((val: string) => parseInt(val, 10));
+
+        const hexColor = `#${rgbValues
+          .map((val: { toString: (arg0: number) => string }) =>
+            val.toString(16).padStart(2, "0")
+          )
+          .join("")}`;
+
+        setFillColor(hexColor);
+      } else {
+        setFillColor(fill!);
+      }
+
+      let text = active?.get("text");
+      if (text) {
+        // console.log("[canvasSetup] UPDATED active text: ", text);
       }
     });
   }
@@ -143,18 +171,19 @@ const App = () => {
       active?.set({ top: parseInt(event.target.value) });
     }
     canvas?.renderAll();
-    canvas?.discardActiveObject();
     reselect(active!, canvas!);
+    // canvas?.discardActiveObject();
   }
 
   function onColorChange(newcolor: string) {
     let active = canvas?.getActiveObject();
     active?.set({ fill: newcolor });
     canvas?.renderAll();
-    canvas?.discardActiveObject();
     reselect(active!, canvas!);
     setFillColor(newcolor);
     setFillText(newcolor);
+
+    // canvas?.discardActiveObject();
   }
 
   const onChangeVideoDuration = (
@@ -256,37 +285,15 @@ const App = () => {
           <canvas id="canvas" />
         </Box>
         <Box width="25%">
-          <Typography variant="h6">Information</Typography>
-          <TextField
-            id="textXPos"
-            label="XPos"
-            type="number"
-            value={activeXPos}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              onPositionChange(event, "x");
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <TextField
-            id="textYPos"
-            label="YPos"
-            type="number"
-            value={activeYPos}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              onPositionChange(event, "y");
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <ColorPickerInput
+          <InfoPanel
+            activeXPos={activeXPos}
+            activeYPos={activeYPos}
+            onPositionChange={onPositionChange}
             color={fillcolor}
-            setColor={onColorChange}
+            onColorChange={onColorChange}
             text={filltext}
-            setText={onColorChange}
-          />
+            onTextChange={setFillText}
+          ></InfoPanel>
         </Box>
       </Box>
       <Box display="flex" flexDirection="row" width="100%" height="35%">
@@ -322,83 +329,6 @@ const App = () => {
         <Box whiteSpace={"pre-wrap"} width="70%" height="100%">
           <WidgetPanel></WidgetPanel>
         </Box>
-
-        {/* <Box width="70%">
-          <Button
-            variant="contained"
-            component="span"
-            onClick={() => addRect(canvas)}
-          >
-            New Rectangle
-          </Button>
-          <Button
-            variant="contained"
-            component="span"
-            onClick={() =>
-              newTextbox(
-                30,
-                700,
-                "Hello World",
-                480,
-                270,
-                200,
-                false,
-                "Source Sans Pro",
-                canvas
-              )
-            }
-          >
-            New Text Box
-          </Button>
-
-          <TextField
-            id="testStartTime"
-            label="TestStartTime"
-            type="number"
-            defaultValue={2000}
-            value={testStart}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setTestStart(parseInt(event.target.value));
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <TextField
-            id="testEndTime"
-            label="TestEndTime"
-            type="number"
-            defaultValue={5000}
-            value={testEnd}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setTestEnd(parseInt(event.target.value));
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <Button
-            variant="contained"
-            component="span"
-            onClick={() =>
-              newTextbox(
-                30,
-                700,
-                "Hello World",
-                960,
-                540,
-                200,
-                true,
-                "Source Sans Pro",
-                canvas,
-                testStart,
-                testEnd
-              )
-            }
-          >
-            Add Timed Text
-          </Button>
-        </Box> */}
       </Box>
     </Container>
   );
@@ -492,6 +422,10 @@ export function newLayer(
 
     console.log("[newLayer] start and end" + start + " " + end);
 
+    // NOTE: I use the ID to check if it's animated text. This is a temporary solution. -- GEORGE
+    if (newObject.get("id").includes("AnimText")) {
+    }
+
     p_keyframes.push({
       start: start,
       end: end,
@@ -571,7 +505,7 @@ export function newLayer(
   // console.log("[newLayer] after animate, object left and top: " + object.get('left') + " " + object.get('top'));
   // save();
   // checkFilter();
-  console.log("[newLayer] layer created, newLayer() ends");
+  // console.log("[newLayer] layer created, newLayer() ends");
 }
 
 // Create an audio layer
@@ -701,8 +635,6 @@ export default App;
 
 /**
  * TODOs:
- * - weird bug saying rgb is incorrect. Maybe it's because now we've switched to Animated Texts,
- * the default set of color is not correct after populating in the texts.
  * - the last line is not displayed properly.
  * - It's still kinda stuck and laggy. Maybe it's because of the way we're rendering the textboxes?
  * - We should have a timing offset for the words to start earlier than the actual time.

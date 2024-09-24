@@ -312,8 +312,8 @@ export function enhancedLyricsParseWithString(
           ", current word width: " +
           ctx.measureText(word.getText()).width
       );
-      console.log("current space width: " + widthOfSpace);
-      console.log("current next xpos: " + nextXPos);
+      // console.log("current space width: " + widthOfSpace);
+      // console.log("current next xpos: " + nextXPos);
     }
   });
 

@@ -26,12 +26,32 @@ const ColorPickerInput = ({
   const handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = event.target.value;
     setColor(newColor);
-    setText(newColor);
+    handleTextChange(event);
   };
 
   const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newText = event.target.value;
-    setText(newText);
+
+    // check if the text is in "rgb(x, y, z)" format
+    // if so, convert it to hex
+    if (
+      newText.startsWith("rgb") &&
+      newText.includes(",") &&
+      newText.includes(")")
+    ) {
+      const rgbValues = newText
+        .substring(newText.indexOf("(") + 1, newText.indexOf(")"))
+        .split(",")
+        .map((val) => parseInt(val, 10));
+
+      const hexColor = `#${rgbValues
+        .map((val) => val.toString(16).padStart(2, "0"))
+        .join("")}`;
+
+      setColor(hexColor);
+      setText(hexColor);
+      return;
+    }
     if (isValidHexColor(newText)) {
       const fullHexColor =
         newText.length === 4
@@ -42,6 +62,9 @@ const ColorPickerInput = ({
       );
       setColor(fullHexColor);
     }
+
+    setText(newText);
+    return;
   };
 
   return (

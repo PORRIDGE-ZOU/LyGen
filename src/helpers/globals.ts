@@ -44,7 +44,6 @@ export const p_keyframes: PKeyframe[] = [];
 export const allObjects: LygenObject[] = [];
 export const allAnimatedTexts: FabricObject[] = [];
 export const activeLyrics: Map<number, AnimatedText[]> = new Map();
-export let currentIndex = 0;
 
 // make a global ticker to keep track of the current time and current index
 class Ticker {

@@ -169,7 +169,8 @@ function animateText(
   play: boolean,
   props: AnimationProps,
   cv: fabric.Canvas,
-  id: string
+  id: string,
+  animationDuration?: number
 ) {
   var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
   ms -= starttime;
@@ -186,7 +187,9 @@ function animateText(
     let top = item.defaultTop!;
     let scaleX = item.defaultScaleX!;
     let scaleY = item.defaultScaleY!;
-    var duration = props.duration / length;
+    var duration = animationDuration
+      ? animationDuration
+      : props.duration / length;
     var delay = i * duration;
     var animation = {
       opacity: 0,
@@ -297,10 +300,14 @@ function renderText(
   isnew: boolean,
   // start: number,
   startTime?: number,
-  endTime?: number
+  endTime?: number,
+  offset?: number
 ): string {
   var textOffset = 0;
   var groupItems: fabric.Object[] = [];
+  if (offset && startTime) {
+    startTime -= offset;
+  }
 
   function renderLetter(letter: string): fabric.Text {
     var text = new FabricText(letter, {
@@ -349,6 +356,7 @@ function renderText(
     inGroup: false,
   }) as any;
 
+  // this is always true now.
   if (isnew) {
     result.set({
       notnew: true,
@@ -385,12 +393,23 @@ export class AnimatedText extends FabricObject {
   props: AnimationProps;
   id: string;
   inst?: string;
+  importance: number = 5;
+  duration: number = 100;
 
-  constructor(text: string, id: string, props: AnimationProps) {
+  constructor(
+    text: string,
+    id: string,
+    props: AnimationProps,
+    importance?: number
+  ) {
     super();
     this.text = text;
     this.props = props;
     this.id = id;
+    if (importance) {
+      this.importance = importance;
+      this.duration = this.calcDurationFromImportance();
+    }
   }
 
   // NOTE: I changed the name of the function to renderAnimatedText!! -- GEORGE
@@ -404,7 +423,8 @@ export class AnimatedText extends FabricObject {
       this.id,
       true, //TRUE! because we want to set the start and end time -- GEORGE
       startTime,
-      endTime
+      endTime,
+      this.duration
     );
     animateText(
       cv.getItemById(this.id) as fabric.Group,
@@ -412,7 +432,8 @@ export class AnimatedText extends FabricObject {
       false,
       this.props,
       cv,
-      this.id
+      this.id,
+      this.duration
     );
   }
 
@@ -423,7 +444,8 @@ export class AnimatedText extends FabricObject {
       false,
       this.props,
       cv,
-      this.id
+      this.id,
+      this.duration
     );
   }
 
@@ -434,7 +456,8 @@ export class AnimatedText extends FabricObject {
       true,
       this.props,
       cv,
-      this.id
+      this.id,
+      this.duration
     );
   }
 
@@ -484,7 +507,8 @@ export class AnimatedText extends FabricObject {
       false,
       this.props,
       cv,
-      this.id
+      this.id,
+      this.duration
     );
     animate(false, ticker.currentTime, cv, allObjects, p_keyframes, 0);
     // save();
@@ -492,6 +516,15 @@ export class AnimatedText extends FabricObject {
 
   assignTo(id: string, text: string, props: AnimationProps) {
     this.id = id;
+  }
+
+  setImportance(importance: number) {
+    this.importance = importance;
+    this.duration = this.calcDurationFromImportance();
+  }
+
+  calcDurationFromImportance() {
+    return this.importance * 1000; // TODO: change this! -- GEORGE
   }
 }
 
