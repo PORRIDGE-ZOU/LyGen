@@ -1,7 +1,7 @@
 import { FabricObject, FabricText } from "fabric";
 import anime from "animejs";
 import * as fabric from "fabric";
-import { allObjects, p_keyframes } from "./globals";
+import { allAnimatedTexts, allObjects, p_keyframes, ticker } from "./globals";
 
 declare module "fabric" {
   interface Canvas {
@@ -146,7 +146,9 @@ export class LyricsLine {
   }
 }
 
-import { newLayer, deleteObject, animate, globalCurrentTime } from "@/app/page";
+import { newLayer } from "@/app/page";
+import { deleteObject } from "./canvasMisc";
+import { animate } from "./animation";
 // declare function save(): void;
 
 interface AnimationProps {
@@ -363,7 +365,7 @@ function renderText(
     p_keyframes,
     cv,
     props.duration,
-    globalCurrentTime
+    ticker.currentTime
   );
 
   result._objects.forEach(function (object: any, index: number) {
@@ -406,7 +408,7 @@ export class AnimatedText extends FabricObject {
     );
     animateText(
       cv.getItemById(this.id) as fabric.Group,
-      globalCurrentTime,
+      ticker.currentTime,
       false,
       this.props,
       cv,
@@ -478,17 +480,42 @@ export class AnimatedText extends FabricObject {
     cv.renderAll();
     animateText(
       cv.getItemById(this.id) as fabric.Group,
-      globalCurrentTime,
+      ticker.currentTime,
       false,
       this.props,
       cv,
       this.id
     );
-    animate(false, globalCurrentTime, cv, allObjects, p_keyframes, 0);
+    animate(false, ticker.currentTime, cv, allObjects, p_keyframes, 0);
     // save();
   }
 
   assignTo(id: string, text: string, props: AnimationProps) {
     this.id = id;
   }
+}
+
+export function addAnimatedText(
+  text: string,
+  id: string,
+  x: number,
+  y: number,
+  canvas: fabric.Canvas,
+  startTime?: number,
+  endTime?: number
+) {
+  var newtext = new AnimatedText(text, id, {
+    left: x,
+    top: y,
+    preset: "slide top", // TODO: For now -- GEORGE
+    typeAnim: "letter",
+    order: "forward",
+    fontFamily: "Source Sans Pro",
+    duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
+    easing: "easeInQuad",
+    fill: "#FFFFFF",
+  });
+  allAnimatedTexts.push(newtext);
+  newtext.renderAnimatedText(canvas, startTime, endTime);
+  return newtext;
 }

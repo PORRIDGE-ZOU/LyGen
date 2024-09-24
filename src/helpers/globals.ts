@@ -44,3 +44,34 @@ export const p_keyframes: PKeyframe[] = [];
 export const allObjects: LygenObject[] = [];
 export const allAnimatedTexts: FabricObject[] = [];
 export const activeLyrics: Map<number, AnimatedText[]> = new Map();
+export let currentIndex = 0;
+
+// make a global ticker to keep track of the current time and current index
+class Ticker {
+  public static currentTime = 0;
+  public static currentIndex = 0;
+  public static paused = false;
+
+  public static setCurrentTime(time: number): void {
+    Ticker.currentTime = time;
+  }
+  public static incrementCurrentIndex(): void {
+    Ticker.currentIndex++;
+  }
+  public static getAndUpdateCurrentIndex(): number {
+    let result = Ticker.currentIndex;
+    Ticker.currentIndex++;
+    return result;
+  }
+  public static resetCurrentIndex(): void {
+    Ticker.currentIndex = 0;
+  }
+  public static pause(): void {
+    Ticker.paused = true;
+  }
+  public static resume(): void {
+    Ticker.paused = false;
+  }
+}
+// the reason why i can only use "Ticker" instead of "new Ticker()" is because i'm using a static class, which means i can't create an instance of it? Why? Because it's static. It's like Math, you can't create an instance of Math, you can only use it as a class.  Math.random() is a good example of this.
+export const ticker = Ticker;
