@@ -310,7 +310,7 @@ const App = () => {
         <Box width="30%" height="100%">
           <GeneralPanel
             onPlayClick={() => {
-              ticker.pause();
+              ticker.resume();
               animate(
                 true,
                 ticker.currentTime,

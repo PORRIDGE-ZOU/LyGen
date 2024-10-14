@@ -33,6 +33,14 @@ export async function animate(
     ticker.resume();
   }
 
+  if (!play) {
+    updateObjectVisibility(objects, inst, p_keyframes, currenttime, duration);
+
+    // HANDLE ANIMATED TEXT
+    renderAnimatedTexts(currenttime, canvas, inst);
+    inst.renderAll();
+  }
+
   // handling keyframes
   // keyframes.forEach((keyframe, index) => {
   //   // Function to find the next keyframe in time from the same object & property
@@ -176,46 +184,7 @@ export async function animate(
   // });
 
   // Additional code for handling visibility and animations
-  objects.forEach((object) => {
-    if (!object.id.includes("Group")) {
-      const object2 = canvas.getItemById(object.id);
-      const pKeyframe = p_keyframes.find(
-        (x) => x.id === object.id
-      ) as PKeyframe;
-      const isVisible =
-        currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-        currenttime <= pKeyframe.end &&
-        currenttime <= duration;
 
-      object2?.set("visible", isVisible);
-      inst.renderAll();
-      if (isVisible) {
-        props.forEach((prop) =>
-          checkAnyKeyframe(object.id, prop, inst, objects)
-        );
-      }
-    }
-
-    // const obj = canvas.getItemById(object.id);
-    // if (obj.type === "lottie") {
-    //   obj.goToSeconds(currenttime);
-    //   inst.renderAll();
-    // }
-  });
-
-  inst.renderAll();
-
-  // HANDLE ANIMATED TEXT
-  if (allAnimatedTexts.length > 0) {
-    let active = findCurrentLyrics(currenttime);
-    if (allAnimatedTexts.length > 0) {
-      let active = findCurrentLyrics(currenttime);
-      active?.forEach((text) => {
-        text.seek(currenttime, canvas);
-        inst.renderAll();
-      });
-    }
-  }
   // playVideos(time);
   if (play) {
     playAudio(
@@ -227,6 +196,7 @@ export async function animate(
       duration
     );
   }
+  inst.renderAll();
 
   if (play && !ticker.paused) {
     const animation = { value: 0 };
@@ -244,37 +214,14 @@ export async function animate(
             onTimeChange(currenttime);
           }
           // NOTE: TODO: Note here that instead of looping over the entire AnimatedText array (which Motionity does), we only loop over the activeLyrics array. This is much more optimized for performance. Maybe there is a better method. -- GEORGE
-          if (allAnimatedTexts.length > 0) {
-            let active = findCurrentLyrics(currenttime);
-            active?.forEach((text) => {
-              text.seek(currenttime, canvas);
-              inst.renderAll();
-            });
-          }
-          objects.forEach((object) => {
-            if (!object.id.includes("Group")) {
-              const object2 = inst.getItemById(object.id);
-              const pKeyframe = p_keyframes.find(
-                (x) => x.id === object.id
-              ) as PKeyframe;
-              const isVisible =
-                currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-                currenttime <= pKeyframe.end &&
-                currenttime <= duration;
-              object2?.set("visible", isVisible);
-              inst.renderAll();
-              if (isVisible) {
-                props.forEach((prop) =>
-                  checkAnyKeyframe(object.id, prop, inst, objects)
-                );
-              }
-            }
-            // const obj = canvas.getItemById(object.id);
-            // if (obj.type === "lottie") {
-            //   obj.goToSeconds(currenttime);
-            //   inst.renderAll();
-            // }
-          });
+          renderAnimatedTexts(currenttime, canvas, inst);
+          updateObjectVisibility(
+            objects,
+            inst,
+            p_keyframes,
+            currenttime,
+            duration
+          );
           inst.renderAll();
           // if (!recording) {
           //   renderTime();
@@ -296,6 +243,50 @@ export async function animate(
   } else if (ticker.paused) {
     ticker.setCurrentTime(currenttime);
   }
+}
+
+function renderAnimatedTexts(
+  currenttime: number,
+  canvas: fabric.Canvas,
+  inst: fabric.Canvas
+) {
+  if (allAnimatedTexts.length > 0) {
+    let active = findCurrentLyrics(currenttime);
+    if (allAnimatedTexts.length > 0) {
+      let active = findCurrentLyrics(currenttime);
+      active?.forEach((text) => {
+        text.seek(currenttime, canvas);
+      });
+    }
+  }
+}
+
+function updateObjectVisibility(
+  objects: fabric.FabricObject[],
+  inst: fabric.Canvas,
+  p_keyframes: PKeyframe[],
+  currenttime: number,
+  duration: number
+) {
+  objects.forEach((object) => {
+    if (!object.id.includes("Group")) {
+      const object2 = inst.getItemById(object.id);
+      const pKeyframe = p_keyframes.find(
+        (x) => x.id === object.id
+      ) as PKeyframe;
+      const isVisible =
+        currenttime >= pKeyframe.trimstart + pKeyframe.start &&
+        currenttime <= pKeyframe.end &&
+        currenttime <= duration;
+      object2?.set("visible", isVisible);
+      // inst.renderAll();
+      if (isVisible) {
+        props.forEach((prop) =>
+          checkAnyKeyframe(object.id, prop, inst, objects)
+        );
+      }
+    }
+  });
 }
 
 // Check whether any keyframe exists for a certain property

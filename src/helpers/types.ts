@@ -175,7 +175,7 @@ function animateText(
   // this should be the actual starting time of this animated text
   var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
   // this should be the actual ending time of this animated text
-  let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
+  // let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
   // currentTime -= starttime;
   var length = group._objects.length;
   var globaldelay = 0;
@@ -278,7 +278,7 @@ function animateText(
       // cv.renderAll();
     }
   }
-  cv.renderAll();
+  // cv.renderAll();
 }
 
 function setText(
