@@ -165,15 +165,18 @@ interface AnimationProps {
 
 function animateText(
   group: fabric.Group,
-  ms: number,
+  currentTime: number,
   play: boolean,
   props: AnimationProps,
   cv: fabric.Canvas,
   id: string,
   animationDuration?: number
 ) {
+  // this should be the actual starting time of this animated text
   var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
-  ms -= starttime;
+  // this should be the actual ending time of this animated text
+  let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
+  // currentTime -= starttime;
   var length = group._objects.length;
   var globaldelay = 0;
 
@@ -182,6 +185,7 @@ function animateText(
     if (props.order == "backward") {
       index = length - i - 1;
     }
+    // each item should be a letter
     let item = group.item(index) as FabricText;
     let left = item.defaultLeft!;
     let top = item.defaultTop!;
@@ -190,6 +194,8 @@ function animateText(
     var duration = animationDuration
       ? animationDuration
       : props.duration / length;
+    // let starttime = endtime - duration;
+    let specificCurrentTime = currentTime - starttime;
     var delay = i * duration;
     var animation = {
       opacity: 0,
@@ -223,8 +229,8 @@ function animateText(
       animation.scaleX = 0;
       animation.scaleY = 0;
     } else if (props.preset == "shrink") {
-      animation.scaleX = 1.5;
-      animation.scaleY = 1.5;
+      animation.scaleX = 3;
+      animation.scaleY = 3;
     }
     if (delay < 0) {
       delay = 0;
@@ -260,7 +266,7 @@ function animateText(
         start = true;
       },
     });
-    instance.seek(ms);
+    instance.seek(specificCurrentTime);
     if (!play) {
       item.set({
         opacity: animation.opacity,
@@ -388,6 +394,12 @@ function renderText(
   return result.id;
 }
 
+/**
+ * A class for text with letter-wise animations.
+ * @param props AnimationProps = {duration: number, order: "forward" | "backward", typeAnim: string, preset: string, easing: string, fill?: string, fontFamily?: string, left?: number, top?: number}
+ * where preset should be one of "typewriter", "fade in", "slide top", "slide bottom", "slide left", "slide right", "scale", "shrink"
+ * @param id should be unique. You should use the Ticker class.
+ */
 export class AnimatedText extends FabricObject {
   text: string;
   props: AnimationProps;
@@ -405,6 +417,7 @@ export class AnimatedText extends FabricObject {
     super();
     this.text = text;
     this.props = props;
+    this.duration = props.duration;
     this.id = id;
     if (importance) {
       this.importance = importance;
@@ -540,8 +553,8 @@ export function addAnimatedText(
   var newtext = new AnimatedText(text, id, {
     left: x,
     top: y,
-    preset: "slide top", // TODO: For now -- GEORGE
-    typeAnim: "letter",
+    preset: "shrink", // TODO: This is the animation for now -- GEORGE
+    typeAnim: "word",
     order: "forward",
     fontFamily: "Source Sans Pro",
     duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE

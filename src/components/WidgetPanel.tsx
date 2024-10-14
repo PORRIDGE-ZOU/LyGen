@@ -1,27 +1,35 @@
 import React, { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
 import LyricImportanceCurve from "./LyricImportanceCurve"; // Import the new component
+import { activeLyrics } from "@/helpers/globals";
 
-export default function WidgetPanel() {
+interface WidgetPanelProps {
+  currentLyrics: string[][];
+}
+
+export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
   const [activeTab, setActiveTab] = useState(0);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
-  // Sample lyrics data
-  const lyrics = [
-    ["I", "got", "my", "driver's", "license", "last", "week"],
-    ["Just", "like", "we", "always", "talked", "about"],
-    // Add more lyric lines as needed
-  ];
-
   const handleImportanceChange = (
     lineIndex: number,
     importanceValues: number[]
   ) => {
+    // TODO: Handle the updated importance values here
+    let keys = Array.from(activeLyrics.keys());
+    let changedKey = keys[lineIndex];
+    let changedLine = activeLyrics.get(changedKey);
+    if (!changedLine) {
+      console.error(`Line ${lineIndex} not found in the active lyrics map.`);
+      return;
+    }
+    changedLine.forEach((animatedText, index) => {
+      animatedText.setImportance(importanceValues[index]);
+    });
     console.log(`Importance values for line ${lineIndex}:`, importanceValues);
-    // Handle the updated importance values here
   };
 
   return (
@@ -52,7 +60,7 @@ export default function WidgetPanel() {
       >
         {activeTab === 0 && (
           <LyricImportanceCurve
-            lyrics={lyrics}
+            lyrics={currentLyrics}
             onImportanceChange={handleImportanceChange}
           />
         )}

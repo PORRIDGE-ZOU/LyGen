@@ -43,6 +43,11 @@ export const props = [
 export const p_keyframes: PKeyframe[] = [];
 export const allObjects: LygenObject[] = [];
 export const allAnimatedTexts: FabricObject[] = [];
+/**
+ * activeLyrics is a map of the current active lyrics, in the format of
+ * [endTime, [AnimatedText1, AnimatedText2, ...]]
+ * @NOTE activeLyrics is already SORTED by endTime when populated.
+ */
 export const activeLyrics: Map<number, AnimatedText[]> = new Map();
 
 // make a global ticker to keep track of the current time and current index

@@ -48,6 +48,7 @@ const App = () => {
   const [activeXPos, setActiveXPos] = useState<number>(0);
   const [activeYPos, setActiveYPos] = useState<number>(0);
   const [lyrics, setLyrics] = useState<string>("Test Lyrics\nTest Lyrics2");
+  const [lyrics_forWidget, setLyrics_forWidget] = useState<string[][]>([[]]);
 
   // ------------------ Functions ------------------
   useEffect(() => {
@@ -234,15 +235,24 @@ const App = () => {
 
   const onEnhancedLyricObjectsChange = (lyrics: LyricsLine[]) => {
     let newLyrics: string = "";
+    let currentLyrics_forWidget: string[][] = [[]];
+    let stringindex = 0;
     lyrics.forEach((word, index) => {
       newLyrics += word.text;
+      currentLyrics_forWidget[stringindex].push(word.text);
       if (word.isEnhancedSentenceEnd) {
         newLyrics += "\n";
+        stringindex++;
+        currentLyrics_forWidget.push([]);
       } else {
         newLyrics += " ";
       }
     });
     setLyrics(newLyrics);
+    setLyrics_forWidget(currentLyrics_forWidget);
+    console.log(
+      "[onEnhancedLyricObjectsChange] finished populating lyrics to widget/lyrics column"
+    );
   };
 
   const onSeekToTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -327,7 +337,7 @@ const App = () => {
           ></GeneralPanel>
         </Box>
         <Box whiteSpace={"pre-wrap"} width="70%" height="100%">
-          <WidgetPanel></WidgetPanel>
+          <WidgetPanel currentLyrics={lyrics_forWidget}></WidgetPanel>
         </Box>
       </Box>
     </Container>
@@ -350,6 +360,7 @@ export function newLayer(
   var color: string = "#FFFFFF";
 
   // Determine the color based on the object's type and assetType
+  // NO use for
   if (newObject.get("type") == "image") {
     color = newObject.get("assetType") == "video" ? "#106CF6" : "#92F711";
   } else if (newObject.get("type") == "textbox") {

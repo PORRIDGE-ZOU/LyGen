@@ -6,8 +6,8 @@ interface LyricSearchProps {
 }
 
 const LyricSearch = ({ onLyricsSearchSuccess }: LyricSearchProps) => {
-  const [songTitle, setSongTitle] = useState("");
-  const [artist, setArtist] = useState("");
+  const [songTitle, setSongTitle] = useState("Driver's License");
+  const [artist, setArtist] = useState("Olivia Rodrigo");
   const [lyrics, setLyrics] = useState("");
 
   const handleSearch = async () => {
