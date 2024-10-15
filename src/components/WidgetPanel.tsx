@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
-import LyricImportanceCurve from "./LyricImportanceCurve"; // Import the new component
+import ImportanceTab from "./ImportanceTab"; // Import the new component
 import { activeLyrics } from "@/helpers/globals";
 
 interface WidgetPanelProps {
@@ -59,7 +59,7 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
         }}
       >
         {activeTab === 0 && (
-          <LyricImportanceCurve
+          <ImportanceTab
             lyrics={currentLyrics}
             onImportanceChange={handleImportanceChange}
           />

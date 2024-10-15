@@ -265,20 +265,6 @@ export function enhancedLyricsParseWithString(
     var endTime = word.enhancedSentenceEndTime * 1000;
     nextXPos += ctx.measureText(word.getText()).width / 2 + 0;
 
-    // newTextbox(
-    //   24,
-    //   400,
-    //   word.getText(),
-    //   nextXPos,
-    //   270,
-    //   200,
-    //   false,
-    //   "Source Sans Pro",
-    //   canvas,
-    //   word.getTimeInSeconds() * 1000,
-    //   endTime
-    // );
-
     let newtext = addAnimatedText(
       word.getText(),
       "AnimText" + ticker.getAndUpdateCurrentIndex(),
@@ -312,8 +298,6 @@ export function enhancedLyricsParseWithString(
           ", current word width: " +
           ctx.measureText(word.getText()).width
       );
-      // console.log("current space width: " + widthOfSpace);
-      // console.log("current next xpos: " + nextXPos);
     }
   });
 

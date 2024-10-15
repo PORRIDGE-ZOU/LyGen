@@ -1,7 +1,13 @@
 import { FabricObject, FabricText } from "fabric";
 import anime from "animejs";
 import * as fabric from "fabric";
-import { allAnimatedTexts, allObjects, p_keyframes, ticker } from "./globals";
+import {
+  activeLyrics,
+  allAnimatedTexts,
+  allObjects,
+  p_keyframes,
+  ticker,
+} from "./globals";
 
 declare module "fabric" {
   interface Canvas {
@@ -152,7 +158,7 @@ export class LyricsLine {
 }
 
 import { newLayer } from "@/app/page";
-import { deleteObject } from "./canvasMisc";
+import { deleteObject, realignLineOfText } from "./canvasMisc";
 import { animate, animateText } from "./animation";
 // declare function save(): void;
 
@@ -545,10 +551,6 @@ export class AnimatedText extends FabricObject {
     animate(false, ticker.currentTime, cv, allObjects, p_keyframes, 0);
   }
 
-  assignTo(id: string, text: string, props: AnimationProps) {
-    this.id = id;
-  }
-
   setImportance(importance: number) {
     this.importance = importance;
     this.duration = this.calcDurationFromImportance();
@@ -558,6 +560,14 @@ export class AnimatedText extends FabricObject {
 
     this.props.defaultScaleX = 1 + (this.importance - 0.5) * 2;
     this.props.defaultScaleY = 1 + (this.importance - 0.5) * 2;
+
+    let endtime = this.textFabricObject?.get("endtime");
+    let texts = activeLyrics.get(endtime);
+    if (!texts) {
+      console.log("Texts not found in activeLyrics map.");
+      return;
+    }
+    realignLineOfText(texts, this.canvas!);
   }
 
   calcDurationFromImportance() {

@@ -1,12 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
+import {
+  Box,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  IconButton,
+  TextField,
+  Typography,
+  Container,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-interface LyricImportanceCurveProps {
+interface ImportanceTabProps {
   lyrics: string[][];
   onImportanceChange: (lineIndex: number, importanceValues: number[]) => void;
 }
 
-const LyricImportanceCurve: React.FC<LyricImportanceCurveProps> = ({
+interface Customization {
+  type: string; // e.g., "resize", "slow down"
+  factor: number; // The user-defined factor
+}
+
+const availableCustomizations = [
+  "Enlarge by",
+  "Slow down animation by",
+  "Shift color",
+]; // Available definitions
+
+const ImportanceTab: React.FC<ImportanceTabProps> = ({
   lyrics,
   onImportanceChange,
 }) => {
@@ -15,6 +37,9 @@ const LyricImportanceCurve: React.FC<LyricImportanceCurveProps> = ({
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [customizations, setCustomizations] = useState<Customization[]>([]); // Store customizations
+
+  // ---------------- Importance Curve ----------------
   // Initialize importance values when selected line changes
   useEffect(() => {
     const wordsInLine = lyrics[selectedLineIndex]?.length || 0;
@@ -53,6 +78,76 @@ const LyricImportanceCurve: React.FC<LyricImportanceCurveProps> = ({
 
   // Left offset for y-axis labels
   const xOffset = 30;
+
+  // ---------------- Customizations ----------------
+  // Add a new customization
+  const addCustomization = (type: string) => {
+    setCustomizations([...customizations, { type, factor: 1 }]); // Default factor of 1
+  };
+
+  // Remove a customization
+  const removeCustomization = (index: number) => {
+    const updated = [...customizations];
+    updated.splice(index, 1);
+    setCustomizations(updated);
+  };
+
+  // Handle factor change
+  const handleFactorChange = (index: number, factor: number) => {
+    const updated = [...customizations];
+    updated[index].factor = factor;
+    setCustomizations(updated);
+  };
+
+  // UI for Customizations
+  const renderCustomizations = () => (
+    <Container>
+      <Typography variant="h6">Define what importance means!</Typography>
+      <Typography variant="body1">
+        By changing the importance of a word from 0.5 to 1, I want the word
+        to...
+      </Typography>
+      <Box mt={2}>
+        {customizations.map((customization, index) => (
+          <Box key={index} display="flex" alignItems="center" mb={1}>
+            <span>{customization.type}</span>
+            <TextField
+              type="number"
+              value={customization.factor}
+              onChange={(e) =>
+                handleFactorChange(index, parseFloat(e.target.value))
+              }
+              size="small"
+              style={{ marginLeft: 8, marginRight: 8, width: "60px" }}
+            />
+            <IconButton
+              aria-label="delete"
+              size="small"
+              onClick={() => removeCustomization(index)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        ))}
+        {/* Add New Customization */}
+        <FormControl fullWidth variant="outlined" margin="dense">
+          <InputLabel>Add Customization</InputLabel>
+          <Select
+            onChange={(e) => addCustomization(e.target.value as string)}
+            value=""
+          >
+            {availableCustomizations
+              .filter((type) => !customizations.some((c) => c.type === type)) // Exclude already added
+              .map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+      </Box>
+    </Container>
+  );
 
   return (
     <Box>
@@ -128,6 +223,9 @@ const LyricImportanceCurve: React.FC<LyricImportanceCurveProps> = ({
           ))}
         </svg>
       </Box>
+
+      {/* Customizations */}
+      {renderCustomizations()}
     </Box>
   );
 
@@ -231,4 +329,4 @@ const LyricImportanceCurve: React.FC<LyricImportanceCurveProps> = ({
   }
 };
 
-export default LyricImportanceCurve;
+export default ImportanceTab;

@@ -2,6 +2,7 @@ import { FabricObject } from "fabric";
 import * as fabric from "fabric";
 import { allAnimatedTexts, allObjects, p_keyframes, ticker } from "./globals";
 import { newLayer } from "@/app/page";
+import { AnimatedText } from "./types";
 
 // Deselect and reselect an object
 export function reselect(selection: FabricObject, canvas: fabric.Canvas) {
@@ -177,14 +178,54 @@ export const newTextbox = (
 
 const calculateTextWidth = (
   text: string,
-  font: string,
+  font?: string,
   canvas?: fabric.Canvas
 ) => {
   if (!canvas) {
     console.error("[calculateTextWidth] canvas is undefined");
   }
   let ctx = canvas!.getContext(); // remove "2d" --9.23, GEORGE
-  ctx.font = font;
-  // TODO: mysterious offset -- GEORGE
-  return ctx!.measureText(text).width + 10;
+  if (font) ctx.font = font;
+  return ctx!.measureText(text).width + 0;
 };
+
+export function realignLineOfText(line: AnimatedText[], canvas: fabric.Canvas) {
+  let ctx = canvas.getContext();
+  let widthOfSpace = ctx.measureText(" ").width;
+  let centerX = canvas.width / 2;
+  let lineWidth = 0;
+  let textWidths: number[] = [];
+
+  console.log("[realignLineOfText] CALLED. center:", centerX);
+
+  line.forEach((text, index) => {
+    let originalTextWidth = ctx.measureText(text.text).width;
+    let actualWidth = originalTextWidth * text.props.defaultScaleX!;
+    textWidths.push(actualWidth);
+    if (index != line.length - 1) {
+      actualWidth += widthOfSpace;
+    } else {
+    }
+    lineWidth += actualWidth;
+
+    console.log(
+      "[realignLineOfText] text:",
+      text.text,
+      "defaultScaleX:",
+      text.props.defaultScaleX,
+      "actualWidth:",
+      actualWidth
+    );
+  });
+
+  let nextXPos = centerX - lineWidth / 2;
+  line.forEach((text, index) => {
+    nextXPos += textWidths[index] / 2;
+    text.textFabricObject!.set("left", nextXPos);
+    text.textFabricObject!.set("defaultLeft", nextXPos);
+    text.props.left = nextXPos;
+    nextXPos += textWidths[index] / 2;
+    nextXPos += widthOfSpace;
+  });
+  canvas.renderAll();
+}
