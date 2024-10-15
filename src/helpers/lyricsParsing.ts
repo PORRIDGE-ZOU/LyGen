@@ -327,10 +327,15 @@ export function enhancedLyricsParseWithString(
   onLyricsUpload(lyricsObjects);
 }
 
-export function findCurrentLyrics(time: number) {
+export function findCurrentAndNextLyrics(time: number) {
   // NOTE: No need to sort, as the activeLyrics map is already sorted when we populate it -- GEORGE
   // let keys = Array.from(activeLyrics.keys()).sort((a, b) => a - b); // Sorting if not already sorted
   let keys = Array.from(activeLyrics.keys());
+  for (let key of keys) {
+    let texts = activeLyrics.get(key);
+    let finaltext = texts![texts!.length - 1];
+    key -= finaltext!.animateDuration!;
+  }
   function findClosestGreaterOrEqual(
     keys: number[],
     target: number
@@ -356,8 +361,36 @@ export function findCurrentLyrics(time: number) {
   }
   let closestKey = findClosestGreaterOrEqual(keys, time);
   if (closestKey) {
-    return activeLyrics.get(closestKey);
+    let result = activeLyrics.get(closestKey);
+    let nextkey: number | null = null;
+    let previouskey: number | null = null;
+    for (let key of keys) {
+      if (key == closestKey) {
+        let index = keys.indexOf(key);
+        if (index < keys.length - 1) {
+          nextkey = keys[index + 1];
+        }
+        if (index > 0) {
+          previouskey = keys[index - 1];
+        }
+      }
+    }
+    let next = activeLyrics.get(nextkey!);
+    let previous = activeLyrics.get(previouskey!);
+    if (next) {
+      result = result!.concat(next);
+    }
+    // if (previous) {
+    //   result = result!.concat(previous);
+    // } // We don't need the previous, logically. Not for now. -- GEORGE
+    return result!;
   } else {
     return [];
+  }
+}
+
+export function findLyricsAroundTime(time: number) {
+  let keys = Array.from(activeLyrics.keys());
+  for (let key of keys) {
   }
 }

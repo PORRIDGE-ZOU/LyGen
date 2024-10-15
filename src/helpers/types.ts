@@ -19,6 +19,7 @@ declare module "fabric" {
     defaultTop?: number;
     defaultScaleX?: number;
     defaultScaleY?: number;
+    animateDuration?: number;
   }
 
   interface GroupProps {
@@ -52,6 +53,7 @@ export class LygenObject extends FabricObject {
   locked?: any;
   start?: number;
   end?: number;
+  animateDuration?: number;
 
   constructor(
     id: string,
@@ -74,6 +76,9 @@ export class LygenObject extends FabricObject {
     this.locked = locked;
     this.start = start;
     this.end = end;
+    if (object && object.animateDuration) {
+      this.animateDuration = object.animateDuration;
+    }
   }
 }
 
@@ -148,10 +153,10 @@ export class LyricsLine {
 
 import { newLayer } from "@/app/page";
 import { deleteObject } from "./canvasMisc";
-import { animate } from "./animation";
+import { animate, animateText } from "./animation";
 // declare function save(): void;
 
-interface AnimationProps {
+export interface AnimationProps {
   duration: number;
   order: "forward" | "backward";
   typeAnim: string;
@@ -161,124 +166,8 @@ interface AnimationProps {
   fontFamily?: string;
   left?: number;
   top?: number;
-}
-
-function animateText(
-  group: fabric.Group,
-  currentTime: number,
-  play: boolean,
-  props: AnimationProps,
-  cv: fabric.Canvas,
-  id: string,
-  animationDuration?: number
-) {
-  // this should be the actual starting time of this animated text
-  var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
-  // this should be the actual ending time of this animated text
-  // let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
-  // currentTime -= starttime;
-  var length = group._objects.length;
-  var globaldelay = 0;
-
-  for (var i = 0; i < length; i++) {
-    var index = i;
-    if (props.order == "backward") {
-      index = length - i - 1;
-    }
-    // each item should be a letter
-    let item = group.item(index) as FabricText;
-    let left = item.defaultLeft!;
-    let top = item.defaultTop!;
-    let scaleX = item.defaultScaleX!;
-    let scaleY = item.defaultScaleY!;
-    var duration = animationDuration
-      ? animationDuration
-      : props.duration / length;
-    // let starttime = endtime - duration;
-    let specificCurrentTime = currentTime - starttime;
-    var delay = i * duration;
-    var animation = {
-      opacity: 0,
-      top: top,
-      left: left,
-      scaleX: scaleX,
-      scaleY: scaleY,
-    };
-    if (props.typeAnim == "letter") {
-      delay = i * duration - 100;
-    } else if (props.typeAnim == "word") {
-      if (item.text == " ") {
-        globaldelay += 500;
-      }
-      delay = globaldelay;
-    }
-    if (props.preset == "typewriter") {
-      delay = i * duration;
-      duration = 20;
-    } else if (props.preset == "fade in") {
-      // Do nothing
-    } else if (props.preset == "slide top") {
-      animation.top += 20;
-    } else if (props.preset == "slide bottom") {
-      animation.top -= 20;
-    } else if (props.preset == "slide left") {
-      animation.left += 20;
-    } else if (props.preset == "slide right") {
-      animation.left -= 20;
-    } else if (props.preset == "scale") {
-      animation.scaleX = 0;
-      animation.scaleY = 0;
-    } else if (props.preset == "shrink") {
-      animation.scaleX = 3;
-      animation.scaleY = 3;
-    }
-    if (delay < 0) {
-      delay = 0;
-    }
-    if (duration < 20) {
-      duration = 20;
-    }
-    var start = false;
-    var instance = anime({
-      targets: animation,
-      delay: delay,
-      opacity: 1,
-      left: left,
-      top: top,
-      scaleX: scaleX,
-      scaleY: scaleY,
-      duration: duration,
-      easing: props.easing,
-      autoplay: play,
-      update: function () {
-        if (start && play) {
-          item.set({
-            opacity: animation.opacity,
-            left: animation.left,
-            top: animation.top,
-            scaleX: animation.scaleX,
-            scaleY: animation.scaleY,
-          });
-          cv.renderAll();
-        }
-      },
-      changeBegin: function () {
-        start = true;
-      },
-    });
-    instance.seek(specificCurrentTime);
-    if (!play) {
-      item.set({
-        opacity: animation.opacity,
-        left: animation.left,
-        top: animation.top,
-        scaleX: animation.scaleX,
-        scaleY: animation.scaleY,
-      });
-      // cv.renderAll();
-    }
-  }
-  // cv.renderAll();
+  defaultScaleX?: number;
+  defaultScaleY?: number;
 }
 
 function setText(
@@ -296,7 +185,7 @@ function setText(
   }
 }
 
-function renderText(
+function renderTextOld(
   string: string,
   props: AnimationProps,
   x: number,
@@ -307,8 +196,10 @@ function renderText(
   // start: number,
   startTime?: number,
   endTime?: number,
-  offset?: number
-): string {
+  offset?: number,
+  defaultScaleX?: number,
+  defaultScaleY?: number
+): fabric.Group {
   var textOffset = 0;
   var groupItems: fabric.Object[] = [];
   if (offset && startTime) {
@@ -324,18 +215,22 @@ function renderText(
       fontSize: 24,
       fontWeight: 400,
       opacity: 1,
-    }) as any;
+    });
     text.set({
       defaultLeft: text.left,
       defaultTop: text.top,
-      defaultScaleX: 1,
-      defaultScaleY: 1,
+      defaultScaleX: defaultScaleX ? defaultScaleX : 1,
+      defaultScaleY: defaultScaleY ? defaultScaleY : 1,
+      scaleX: defaultScaleX ? defaultScaleX : 1,
+      scaleY: defaultScaleY ? defaultScaleY : 1,
     });
     if (startTime && endTime) {
       text.set("notnew", true);
       text.set("starttime", startTime);
       text.set("endtime", endTime);
     }
+    // TODO: NOTE: For whatever reason, the width of the text is not being calculated correctly.
+    // it just doesn't consider the scaling factor. -- GEORGE
     textOffset += text.get("width");
     return text;
   }
@@ -360,7 +255,7 @@ function renderText(
     id: id,
     strokeDashArray: [],
     inGroup: false,
-  }) as any;
+  });
 
   // this is always true now.
   if (isnew) {
@@ -383,15 +278,125 @@ function renderText(
   );
 
   result._objects.forEach(function (object: any, index: number) {
-    result.item(index).set({
-      defaultLeft: result.item(index).defaultLeft - result.width / 2,
-      defaultTop: result.item(index).defaultTop - result.height / 2,
+    result!.item(index).set({
+      defaultLeft: result.item(index).defaultLeft! - result.width / 2,
+      defaultTop: result.item(index).defaultTop! - result.height / 2,
     });
   });
 
   cv.setActiveObject(result);
   cv.bringObjectToFront(result);
-  return result.id;
+  return result;
+}
+
+function renderText(
+  string: string,
+  props: AnimationProps,
+  x: number,
+  y: number,
+  cv: fabric.Canvas,
+  id: string,
+  isnew: boolean,
+  // start: number,
+  startTime?: number,
+  endTime?: number,
+  offset?: number,
+  defaultScaleX?: number,
+  defaultScaleY?: number
+): FabricText {
+  var textOffset = 0;
+  var groupItems: fabric.Object[] = [];
+  if (offset && startTime) {
+    startTime -= offset;
+  }
+
+  function renderLetter(letter: string): fabric.Text {
+    var text = new FabricText(letter, {
+      left: textOffset,
+      top: 0,
+      fill: props.fill,
+      fontFamily: props.fontFamily,
+      fontSize: 24,
+      fontWeight: 400,
+      opacity: 1,
+    });
+    text.set({
+      defaultLeft: text.left,
+      defaultTop: text.top,
+      defaultScaleX: defaultScaleX ? defaultScaleX : 1,
+      defaultScaleY: defaultScaleY ? defaultScaleY : 1,
+      scaleX: defaultScaleX ? defaultScaleX : 1,
+      scaleY: defaultScaleY ? defaultScaleY : 1,
+    });
+    if (startTime && endTime) {
+      text.set("notnew", true);
+      text.set("starttime", startTime);
+      text.set("endtime", endTime);
+    }
+    // TODO: NOTE: For whatever reason, the width of the text is not being calculated correctly.
+    // it just doesn't consider the scaling factor. -- GEORGE
+    textOffset += text.get("width");
+    return text;
+  }
+
+  for (var i = 0; i < string.length; i++) {
+    groupItems.push(renderLetter(string.charAt(i)));
+  }
+
+  let result = new FabricText(string, {
+    stroke: "#FFFFFF",
+    strokeUniform: true,
+    paintFirst: "stroke",
+    strokeWidth: 0,
+    originX: "center",
+    originY: "center",
+    left: x,
+    top: y,
+    cursorWidth: 1,
+    cursorDuration: 1,
+    cursorDelay: 250,
+    assetType: "animatedText",
+    id: id,
+    strokeDashArray: [],
+    inGroup: false,
+    fill: props.fill,
+    fontFamily: props.fontFamily,
+    fontSize: 24,
+    fontWeight: 400,
+    opacity: 1,
+  });
+  result.set({
+    defaultLeft: result.left,
+    defaultTop: result.top,
+    defaultScaleX: defaultScaleX ? defaultScaleX : 1,
+    defaultScaleY: defaultScaleY ? defaultScaleY : 1,
+    scaleX: defaultScaleX ? defaultScaleX : 1,
+    scaleY: defaultScaleY ? defaultScaleY : 1,
+  });
+
+  if (startTime && endTime) {
+    result.set({
+      notnew: true,
+      starttime: startTime,
+      endtime: endTime,
+    });
+  }
+  result.set({ animateDuration: props.duration });
+  console.log("setting animateDuration to: ", result.get("animateDuration"));
+  result.objectCaching = false;
+  cv.add(result);
+  newLayer(
+    result,
+    allObjects,
+    p_keyframes,
+    cv,
+    props.duration,
+    ticker.currentTime
+  );
+  // cv.setActiveObject(result);
+  // cv.bringObjectToFront(result);
+  cv.renderAll();
+  return result;
 }
 
 /**
@@ -402,11 +407,12 @@ function renderText(
  */
 export class AnimatedText extends FabricObject {
   text: string;
+  textFabricObject: FabricText | null = null;
   props: AnimationProps;
   id: string;
-  inst?: string;
   importance: number = 5;
   duration: number = 100;
+  canvas: fabric.Canvas | undefined = undefined;
 
   constructor(
     text: string,
@@ -425,9 +431,8 @@ export class AnimatedText extends FabricObject {
     }
   }
 
-  // NOTE: I changed the name of the function to renderAnimatedText!! -- GEORGE
   renderAnimatedText(cv: fabric.Canvas, startTime?: number, endTime?: number) {
-    this.id = renderText(
+    let textFabricObject = renderText(
       this.text,
       this.props,
       this.props.left!,
@@ -437,10 +442,16 @@ export class AnimatedText extends FabricObject {
       true, //TRUE! because we want to set the start and end time -- GEORGE
       startTime,
       endTime,
-      this.duration
+      this.duration,
+      this.props.defaultScaleX,
+      this.props.defaultScaleY
     );
+    this.id = textFabricObject.id;
+    this.textFabricObject = textFabricObject;
+    this.canvas = cv;
+
     animateText(
-      cv.getItemById(this.id) as fabric.Group,
+      textFabricObject,
       ticker.currentTime,
       false,
       this.props,
@@ -452,7 +463,7 @@ export class AnimatedText extends FabricObject {
 
   seek(ms: number, cv: fabric.Canvas) {
     animateText(
-      cv.getItemById(this.id) as fabric.Group,
+      this.textFabricObject!,
       ms,
       false,
       this.props,
@@ -464,7 +475,7 @@ export class AnimatedText extends FabricObject {
 
   play(cv: fabric.Canvas) {
     animateText(
-      cv.getItemById(this.id) as fabric.Group,
+      this.textFabricObject!,
       0,
       true,
       this.props,
@@ -494,11 +505,13 @@ export class AnimatedText extends FabricObject {
     var scaleX = obj.scaleX;
     var scaleY = obj.scaleY;
     var angle = obj.angle;
-    var start = p_keyframes.find((x) => x.id == this.id)?.start || 0;
+    // var start = p_keyframes.find((x) => x.id == this.id)?.start || 0;
+    let startTime = obj.get("starttime");
+    let endTime = obj.get("endtime");
     deleteObject(obj, false, cv);
     this.text = text;
     this.props = newprops;
-    this.inst = renderText(
+    let obj2 = renderText(
       text,
       this.props,
       left!,
@@ -506,8 +519,14 @@ export class AnimatedText extends FabricObject {
       cv,
       this.id,
       true,
-      start
+      startTime,
+      endTime,
+      this.duration,
+      this.props.defaultScaleX,
+      this.props.defaultScaleY
     );
+    this.id = obj2.id;
+    this.textFabricObject = obj2;
     cv.getItemById(this.id)!.set({
       angle: angle,
       scaleX: scaleX,
@@ -515,7 +534,7 @@ export class AnimatedText extends FabricObject {
     });
     cv.renderAll();
     animateText(
-      cv.getItemById(this.id) as fabric.Group,
+      this.textFabricObject!,
       ticker.currentTime,
       false,
       this.props,
@@ -524,7 +543,6 @@ export class AnimatedText extends FabricObject {
       this.duration
     );
     animate(false, ticker.currentTime, cv, allObjects, p_keyframes, 0);
-    // save();
   }
 
   assignTo(id: string, text: string, props: AnimationProps) {
@@ -534,9 +552,16 @@ export class AnimatedText extends FabricObject {
   setImportance(importance: number) {
     this.importance = importance;
     this.duration = this.calcDurationFromImportance();
+    this.textFabricObject?.set({
+      animateDuration: this.duration,
+    });
+
+    this.props.defaultScaleX = 1 + (this.importance - 0.5) * 2;
+    this.props.defaultScaleY = 1 + (this.importance - 0.5) * 2;
   }
 
   calcDurationFromImportance() {
+    return 500 + (this.importance - 0.5) * 500;
     return this.importance * 1000; // TODO: change this! -- GEORGE
   }
 }
@@ -560,6 +585,8 @@ export function addAnimatedText(
     duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
     easing: "easeInQuad",
     fill: "#FFFFFF",
+    defaultScaleX: 1,
+    defaultScaleY: 1,
   });
   allAnimatedTexts.push(newtext);
   newtext.renderAnimatedText(canvas, startTime, endTime);

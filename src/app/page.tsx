@@ -25,7 +25,6 @@ import {
 import {
   enhancedLyricsParse,
   enhancedLyricsParseWithString,
-  findCurrentLyrics,
 } from "@/helpers/lyricsParsing";
 import LyricsColumn from "@/components/LyricsColumn";
 import LyricSearch from "@/components/LyricsSearch";
@@ -429,9 +428,14 @@ export function newLayer(
       : currenttime;
     const end = newObject.get("notnew")
       ? newObject.get("endtime")
-      : duration - currenttime;
+      : currenttime + duration;
 
     console.log("[newLayer] start and end" + start + " " + end);
+
+    if (newObject.get("notnew")) {
+      pushObject.start = start;
+      pushObject.end = end;
+    }
 
     // NOTE: I use the ID to check if it's animated text. This is a temporary solution. -- GEORGE
     if (newObject.get("id").includes("AnimText")) {

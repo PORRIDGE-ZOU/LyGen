@@ -1,9 +1,16 @@
 import anime from "animejs";
-import { props, allAnimatedTexts, ticker } from "./globals";
-import { findCurrentLyrics } from "./lyricsParsing";
-import { PKeyframe } from "./types";
+import {
+  props,
+  allAnimatedTexts,
+  ticker,
+  p_keyframes,
+  activeLyrics,
+} from "./globals";
+import { findCurrentAndNextLyrics } from "./lyricsParsing";
+import { AnimationProps, LygenObject, PKeyframe } from "./types";
 import * as fabric from "fabric";
 import { playAudio } from "@/app/page";
+import { FabricText } from "fabric";
 
 /** Animate timeline (or seek to specific point in time)
  * IMPROVED BY CHATGPT -- GEORGE
@@ -12,7 +19,7 @@ import { playAudio } from "@/app/page";
  * @param canvas
  * @param objects
  * @param p_keyframes
- * @param duration
+ * @param duration - total duration of the video
  * @param onTimeChange
  */
 export async function animate(
@@ -24,169 +31,15 @@ export async function animate(
   duration: number,
   onTimeChange?: (time: number) => void
 ) {
-  // anime.speed = 1;
-
-  const starttime = new Date();
-  const offset = currenttime;
-  const inst = canvas;
-  if (play) {
-    ticker.resume();
-  }
-
   if (!play) {
-    updateObjectVisibility(objects, inst, p_keyframes, currenttime, duration);
+    updateObjectVisibility(objects, canvas, p_keyframes, currenttime, duration);
 
     // HANDLE ANIMATED TEXT
-    renderAnimatedTexts(currenttime, canvas, inst);
-    inst.renderAll();
+    updateAnimatedTexts(currenttime, canvas, canvas);
+    canvas.renderAll();
   }
-
-  // handling keyframes
-  // keyframes.forEach((keyframe, index) => {
-  //   // Function to find the next keyframe in time from the same object & property
-  //   function nextKeyframe(keyframe, index) {
-  //     const sortedKeyframes = keyframes.slice().sort((a, b) => a.t - b.t);
-  //     const remainingKeyframes = sortedKeyframes.slice(
-  //       sortedKeyframes.findIndex((x) => x === keyframe) + 1
-  //     );
-
-  //     for (const kf of remainingKeyframes) {
-  //       if (kf.id === keyframe.id && kf.name === keyframe.name) {
-  //         return kf;
-  //       }
-  //     }
-
-  //     return false;
-  //   }
-
-  //   // Regroup if needed
-  //   const group = groups.find((x) => x.id === keyframe.id);
-  //   if (group) {
-  //     const object = canvas.getItemById(keyframe.id);
-
-  //     // Set object visibility based on current time and keyframe properties
-  //     const pKeyframe = p_keyframes.find((x) => x.id === keyframe.id);
-  //     const isVisible =
-  //       currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-  //       currenttime <= pKeyframe.end &&
-  //       currenttime <= duration;
-
-  //     object.set("visible", isVisible);
-  //     inst.renderAll();
-
-  //     if (isVisible) {
-  //       props.forEach((prop) => checkAnyKeyframe(keyframe.id, prop, inst));
-  //     }
-  //   }
-
-  //   // Function to set the value of an object's property
-  //   function setValue(prop, object, value, inst) {
-  //     if (object.get("assetType") === "audio" && play) {
-  //       if (object.get("src")) {
-  //         object.get("src").volume = value;
-  //         object.set("volume", value);
-  //       }
-  //       return;
-  //     }
-
-  //     if (object.get("type") !== "group") {
-  //       if (object.group) {
-  //         // Code for handling group properties (commented out for now)
-  //       }
-  //     }
-
-  //     // Set the property value
-  //     if (prop === "left" && !recording) {
-  //       object.set(prop, value + artboard.get("left"));
-  //     } else if (prop === "top" && !recording) {
-  //       object.set(prop, value + artboard.get("top"));
-  //     } else if (prop.startsWith("shadow.")) {
-  //       const shadowProp = prop.split(".")[1];
-  //       object.shadow[shadowProp] = value;
-  //     } else if (object.get("type") !== "group" || prop !== "width") {
-  //       object.set(prop, value);
-  //     }
-
-  //     inst.renderAll();
-  //   }
-
-  //   const object = canvas.getItemById(keyframe.id);
-
-  //   // Handle keyframe animation
-  //   if (
-  //     keyframe.t >= time &&
-  //     currenttime >=
-  //       p_keyframes.find((x) => x.id === keyframe.id).trimstart +
-  //         p_keyframes.find((x) => x.id === keyframe.id).start
-  //   ) {
-  //     const lastKeyframe = keyframes
-  //       .slice(0, index)
-  //       .reverse()
-  //       .find((kf) => kf.id === keyframe.id && kf.name === keyframe.name);
-  //     const lastTime = lastKeyframe ? lastKeyframe.t : 0;
-  //     const lastProp = lastKeyframe
-  //       ? lastKeyframe.value
-  //       : objects
-  //           .find((x) => x.id === keyframe.id)
-  //           .defaults.find((x) => x.name === keyframe.name).value;
-
-  //     if (lastKeyframe && lastKeyframe.t >= time && !play) return;
-
-  //     const delay = play && lastTime > currenttime ? lastTime - time : 0;
-
-  //     const animation = { value: lastProp };
-  //     const instance = anime({
-  //       targets: animation,
-  //       delay: delay,
-  //       value: keyframe.value,
-  //       duration: keyframe.t - lastTime,
-  //       easing: keyframe.easing,
-  //       autoplay: false,
-  //       update: () => {
-  //         if (start && !paused) {
-  //           const pKeyframe = p_keyframes.find((x) => x.id === keyframe.id);
-  //           const isVisible =
-  //             currenttime >= pKeyframe.trimstart + pKeyframe.start &&
-  //             currenttime <= pKeyframe.end &&
-  //             currenttime <= duration;
-
-  //           setValue(keyframe.name, object, animation.value, inst);
-  //           object.set("visible", isVisible);
-  //           inst.renderAll();
-  //         } else if (start && paused) {
-  //           anime.remove(animation);
-  //         }
-  //       },
-  //       changeBegin: () => {
-  //         start = true;
-  //       },
-  //     });
-
-  //     instance.seek(time - lastTime <= 0 ? 0 : time - lastTime);
-
-  //     if (play) instance.play();
-  //     else if (
-  //       parseFloat(lastTime) <= parseFloat(time) &&
-  //       parseFloat(keyframe.t) >= parseFloat(time)
-  //     ) {
-  //       setValue(keyframe.name, object, animation.value, inst);
-  //     }
-  //   } else if (keyframe.t < time && !nextKeyframe(keyframe, index)) {
-  //     const prop = keyframe.name;
-  //     const currentVal = prop.startsWith("shadow.")
-  //       ? object.shadow[prop.split(".")[1]]
-  //       : object.get(prop);
-
-  //     if (currentVal !== keyframe.value) {
-  //       setValue(keyframe.name, object, keyframe.value, inst);
-  //     }
-  //   }
-  // });
-
-  // Additional code for handling visibility and animations
-
-  // playVideos(time);
   if (play) {
+    ticker.resume();
     playAudio(
       currenttime,
       objects,
@@ -195,10 +48,6 @@ export async function animate(
       currenttime,
       duration
     );
-  }
-  inst.renderAll();
-
-  if (play && !ticker.paused) {
     const animation = { value: 0 };
     // initializes a new animation (inside animate())
     const mainInstance = anime({
@@ -214,21 +63,16 @@ export async function animate(
             onTimeChange(currenttime);
           }
           // NOTE: TODO: Note here that instead of looping over the entire AnimatedText array (which Motionity does), we only loop over the activeLyrics array. This is much more optimized for performance. Maybe there is a better method. -- GEORGE
-          renderAnimatedTexts(currenttime, canvas, inst);
+
           updateObjectVisibility(
             objects,
-            inst,
+            canvas,
             p_keyframes,
             currenttime,
             duration
           );
-          inst.renderAll();
-          // if (!recording) {
-          //   renderTime();
-          //   $("#seekbar").css({
-          //     left: currenttime / timelinetime + offset_left,
-          //   });
-          // }
+          updateAnimatedTexts(currenttime, canvas, canvas);
+          canvas.renderAll();
         } else {
           ticker.setCurrentTime(currenttime);
           animation.value = duration + 1;
@@ -240,22 +84,31 @@ export async function animate(
         ticker.setCurrentTime(0);
       },
     });
-  } else if (ticker.paused) {
-    ticker.setCurrentTime(currenttime);
   }
 }
 
-function renderAnimatedTexts(
+function updateAnimatedTexts(
   currenttime: number,
   canvas: fabric.Canvas,
-  inst: fabric.Canvas
+  inst: fabric.Canvas,
+  offset?: number
 ) {
   if (allAnimatedTexts.length > 0) {
-    let active = findCurrentLyrics(currenttime);
-    if (allAnimatedTexts.length > 0) {
-      let active = findCurrentLyrics(currenttime);
+    if (offset) {
+      currenttime -= offset;
+    }
+    // TODO: Why is this find current AND NEXT? It's because now due to animation offset, all
+    // lyrics should appear slightly before the actual time. So we need to find the current and next lyrics.
+    // This might not be the optimal and right solution. -- GEORGE
+    // let active = findCurrentAndNextLyrics(currenttime);
+    // active?.forEach((text) => {
+    //   text.seek(currenttime, canvas);
+    // });
+    let values = activeLyrics.values();
+    for (let i = 0; i < activeLyrics.size; i++) {
+      let active = values.next().value;
       active?.forEach((text) => {
-        text.seek(currenttime, canvas);
+        text.seek(currenttime, inst);
       });
     }
   }
@@ -266,7 +119,7 @@ function updateObjectVisibility(
   inst: fabric.Canvas,
   p_keyframes: PKeyframe[],
   currenttime: number,
-  duration: number
+  duration: number // this duration is the total duration of the video
 ) {
   objects.forEach((object) => {
     if (!object.id.includes("Group")) {
@@ -274,12 +127,27 @@ function updateObjectVisibility(
       const pKeyframe = p_keyframes.find(
         (x) => x.id === object.id
       ) as PKeyframe;
-      const isVisible =
-        currenttime >= pKeyframe.trimstart + pKeyframe.start &&
+      let isVisible =
+        currenttime >= pKeyframe.start &&
         currenttime <= pKeyframe.end &&
         currenttime <= duration;
+      if (object.id.includes("AnimText")) {
+        let obj = object as LygenObject;
+        let activeDuration = obj.animateDuration;
+        let start = obj.start!;
+        let end = obj.end!;
+        if (activeDuration) {
+          isVisible =
+            currenttime >= start - activeDuration &&
+            currenttime <= end - activeDuration &&
+            currenttime <= duration;
+        } else {
+          console.log(
+            "[updateObjectVisibility] activeDuration is undefined. Something went wrong."
+          );
+        }
+      }
       object2?.set("visible", isVisible);
-      // inst.renderAll();
       if (isVisible) {
         props.forEach((prop) =>
           checkAnyKeyframe(object.id, prop, inst, objects)
@@ -391,4 +259,219 @@ function setObjectValue(
     object.set(prop, value);
   }
   inst.renderAll();
+}
+
+export function animateTextOld(
+  group: fabric.Group,
+  currentTime: number,
+  play: boolean,
+  props: AnimationProps,
+  cv: fabric.Canvas,
+  id: string,
+  animationDuration?: number
+) {
+  // this should be the actual starting time of this animated text
+  var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
+  // this should be the actual ending time of this animated text
+  // let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
+  // currentTime -= starttime;
+  var length = group._objects.length;
+  var globaldelay = 0;
+
+  for (var i = 0; i < length; i++) {
+    var index = i;
+    if (props.order == "backward") {
+      index = length - i - 1;
+    }
+    // each item should be a letter (fabric.Text)
+    let item = group.item(index) as fabric.FabricText;
+    let left = item.defaultLeft!;
+    let top = item.defaultTop!;
+    let scaleX = props.defaultScaleX
+      ? props.defaultScaleX
+      : item.defaultScaleX!;
+    let scaleY = props.defaultScaleY
+      ? props.defaultScaleY
+      : item.defaultScaleY!;
+    var duration = animationDuration
+      ? animationDuration
+      : props.duration / length;
+    // let starttime = endtime - duration;
+    let relativeTime = currentTime - starttime;
+    var delay = i * duration;
+    var animation = {
+      opacity: 0,
+      top: top,
+      left: left,
+      scaleX: scaleX,
+      scaleY: scaleY,
+    };
+    if (props.typeAnim == "letter") {
+      delay = i * duration - 100;
+    } else if (props.typeAnim == "word") {
+      if (item.text == " ") {
+        globaldelay += 500;
+      }
+      delay = globaldelay;
+    }
+    if (props.preset == "typewriter") {
+      delay = i * duration;
+      duration = 20;
+    } else if (props.preset == "fade in") {
+      // Do nothing
+    } else if (props.preset == "slide top") {
+      animation.top += 20;
+    } else if (props.preset == "slide bottom") {
+      animation.top -= 20;
+    } else if (props.preset == "slide left") {
+      animation.left += 20;
+    } else if (props.preset == "slide right") {
+      animation.left -= 20;
+    } else if (props.preset == "scale") {
+      animation.scaleX = 0;
+      animation.scaleY = 0;
+    } else if (props.preset == "shrink") {
+      animation.scaleX = 3;
+      animation.scaleY = 3;
+    }
+    if (delay < 0) {
+      delay = 0;
+    }
+    if (duration < 20) {
+      duration = 20;
+    }
+    var start = false;
+    var instance = anime({
+      targets: animation,
+      delay: delay,
+      opacity: 1,
+      left: left,
+      top: top,
+      scaleX: scaleX,
+      scaleY: scaleY,
+      duration: duration,
+      easing: props.easing,
+      autoplay: play,
+      update: function () {
+        if (start && play) {
+          item.set({
+            opacity: animation.opacity,
+            left: animation.left,
+            top: animation.top,
+            scaleX: animation.scaleX,
+            scaleY: animation.scaleY,
+          });
+          cv.renderAll();
+        }
+      },
+      changeBegin: function () {
+        start = true;
+      },
+    });
+    instance.seek(relativeTime);
+    if (!play) {
+      item.set({
+        opacity: animation.opacity,
+        left: animation.left,
+        top: animation.top,
+        scaleX: animation.scaleX,
+        scaleY: animation.scaleY,
+      });
+    }
+  }
+}
+
+export function animateText(
+  text: FabricText,
+  currentTime: number,
+  play: boolean,
+  props: AnimationProps,
+  cv: fabric.Canvas,
+  id: string,
+  animationDuration?: number // not used for now
+) {
+  // this should be the actual starting time of this animated text
+  // var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
+  var starttime = text.get("starttime") || 0;
+  // this should be the actual ending time of this animated text
+  // let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
+  // currentTime -= starttime;
+  // each item should be a letter (fabric.Text)
+  let item = text;
+  let left = item.defaultLeft!;
+  let top = item.defaultTop!;
+  let scaleX = props.defaultScaleX ? props.defaultScaleX : item.defaultScaleX!;
+  let scaleY = props.defaultScaleY ? props.defaultScaleY : item.defaultScaleY!;
+  var duration = animationDuration ? animationDuration : props.duration;
+  // let starttime = endtime - duration;
+  let relativeTime = currentTime - (starttime - duration);
+  var animation = {
+    opacity: 0,
+    top: top,
+    left: left,
+    scaleX: scaleX,
+    scaleY: scaleY,
+  };
+  if (props.typeAnim == "letter") {
+    console.error("[animateText] Letter animation not supported yet.");
+  } else if (props.typeAnim == "word") {
+  }
+  if (props.preset == "typewriter") {
+  } else if (props.preset == "fade in") {
+  } else if (props.preset == "slide top") {
+    animation.top += 20;
+  } else if (props.preset == "slide bottom") {
+    animation.top -= 20;
+  } else if (props.preset == "slide left") {
+    animation.left += 20;
+  } else if (props.preset == "slide right") {
+    animation.left -= 20;
+  } else if (props.preset == "scale") {
+    animation.scaleX = 0;
+    animation.scaleY = 0;
+  } else if (props.preset == "shrink") {
+    animation.scaleX = 3;
+    animation.scaleY = 3;
+  }
+  if (duration < 20) {
+    duration = 20;
+  }
+  var start = false;
+  var instance = anime({
+    targets: animation,
+    delay: 0,
+    opacity: 1,
+    left: left,
+    top: top,
+    scaleX: scaleX,
+    scaleY: scaleY,
+    duration: duration,
+    easing: props.easing,
+    autoplay: play,
+    update: function () {
+      if (start && play) {
+        item.set({
+          opacity: animation.opacity,
+          left: animation.left,
+          top: animation.top,
+          scaleX: animation.scaleX,
+          scaleY: animation.scaleY,
+        });
+        cv.renderAll();
+      }
+    },
+    changeBegin: function () {
+      start = true;
+    },
+  });
+  instance.seek(relativeTime);
+  if (!play) {
+    item.set({
+      opacity: animation.opacity,
+      left: animation.left,
+      top: animation.top,
+      scaleX: animation.scaleX,
+      scaleY: animation.scaleY,
+    });
+  }
 }
