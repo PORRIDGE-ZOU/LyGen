@@ -1,6 +1,11 @@
 import { FabricObject } from "fabric";
 import * as fabric from "fabric";
-import { allAnimatedTexts, allObjects, p_keyframes, ticker } from "./globals";
+import {
+  allAnimatedTexts,
+  allObjects,
+  p_keyframes,
+  globalRegulator,
+} from "./globals";
 import { newLayer } from "@/app/page";
 import { AnimatedText } from "./types";
 
@@ -132,7 +137,7 @@ export const newTextbox = (
       fontweight + " " + fontsize + "px Inter",
       canvas
     ),
-    id: "Text" + ticker.getAndUpdateCurrentIndex(),
+    id: "Text" + globalRegulator.getAndUpdateCurrentIndex(),
     // shadow: {
     //   color: "#000",
     //   offsetX: 0,
@@ -195,9 +200,6 @@ export function realignLineOfText(line: AnimatedText[], canvas: fabric.Canvas) {
   let centerX = canvas.width / 2;
   let lineWidth = 0;
   let textWidths: number[] = [];
-
-  console.log("[realignLineOfText] CALLED. center:", centerX);
-
   line.forEach((text, index) => {
     let originalTextWidth = ctx.measureText(text.text).width;
     let actualWidth = originalTextWidth * text.props.defaultScaleX!;
@@ -207,15 +209,6 @@ export function realignLineOfText(line: AnimatedText[], canvas: fabric.Canvas) {
     } else {
     }
     lineWidth += actualWidth;
-
-    console.log(
-      "[realignLineOfText] text:",
-      text.text,
-      "defaultScaleX:",
-      text.props.defaultScaleX,
-      "actualWidth:",
-      actualWidth
-    );
   });
 
   let nextXPos = centerX - lineWidth / 2;

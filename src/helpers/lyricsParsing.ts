@@ -1,6 +1,11 @@
 import { newLayer } from "@/app/page";
 import { newTextbox } from "./canvasMisc";
-import { activeLyrics, allObjects, p_keyframes, ticker } from "./globals";
+import {
+  activeLyrics,
+  allObjects,
+  p_keyframes,
+  globalRegulator,
+} from "./globals";
 import { addAnimatedText, AnimatedText, LyricsLine } from "./types";
 import * as fabric from "fabric";
 
@@ -267,7 +272,7 @@ export function enhancedLyricsParseWithString(
 
     let newtext = addAnimatedText(
       word.getText(),
-      "AnimText" + ticker.getAndUpdateCurrentIndex(),
+      "AnimText" + globalRegulator.getAndUpdateCurrentIndex(),
       nextXPos,
       270,
       canvas,

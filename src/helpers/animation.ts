@@ -2,7 +2,7 @@ import anime from "animejs";
 import {
   props,
   allAnimatedTexts,
-  ticker,
+  globalRegulator,
   p_keyframes,
   activeLyrics,
 } from "./globals";
@@ -39,7 +39,7 @@ export async function animate(
     canvas.renderAll();
   }
   if (play) {
-    ticker.resume();
+    globalRegulator.resume();
     playAudio(
       currenttime,
       objects,
@@ -57,7 +57,7 @@ export async function animate(
       easing: "linear",
       autoplay: true,
       update: () => {
-        if (!ticker.paused) {
+        if (!globalRegulator.paused) {
           currenttime = animation.value;
           if (onTimeChange) {
             onTimeChange(currenttime);
@@ -74,14 +74,14 @@ export async function animate(
           updateAnimatedTexts(currenttime, canvas, canvas);
           canvas.renderAll();
         } else {
-          ticker.setCurrentTime(currenttime);
+          globalRegulator.setCurrentTime(currenttime);
           animation.value = duration + 1;
           anime.remove(animation);
         }
       },
       complete: () => {
-        ticker.pause();
-        ticker.setCurrentTime(0);
+        globalRegulator.pause();
+        globalRegulator.setCurrentTime(0);
       },
     });
   }

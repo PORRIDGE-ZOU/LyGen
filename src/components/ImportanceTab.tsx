@@ -11,6 +11,7 @@ import {
   Container,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { globalRegulator } from "@/helpers/globals";
 
 interface ImportanceTabProps {
   lyrics: string[][];
@@ -39,7 +40,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 
   const [customizations, setCustomizations] = useState<Customization[]>([]); // Store customizations
 
-  // ---------------- Importance Curve ----------------
+  // Importance Curve ----------------
   // Initialize importance values when selected line changes
   useEffect(() => {
     const wordsInLine = lyrics[selectedLineIndex]?.length || 0;
@@ -79,13 +80,23 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   // Left offset for y-axis labels
   const xOffset = 30;
 
-  // ---------------- Customizations ----------------
-  // Add a new customization
+  // Customizations ----------------
+
+  useEffect(() => {
+    customizations.forEach((customization) => {
+      if (customization.type === "Enlarge by") {
+        globalRegulator.impEnlargeFactor = customization.factor;
+      } else if (customization.type === "Slow down animation by") {
+        globalRegulator.impAnimSlowFactor = customization.factor;
+      }
+    });
+    console.log("Customizations updated:", customizations);
+  }, [customizations]);
+
   const addCustomization = (type: string) => {
     setCustomizations([...customizations, { type, factor: 1 }]); // Default factor of 1
   };
 
-  // Remove a customization
   const removeCustomization = (index: number) => {
     const updated = [...customizations];
     updated.splice(index, 1);
@@ -229,7 +240,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     </Box>
   );
 
-  // Helper functions and event handlers
+  // Helper Functions -----------------
 
   function handleMouseDown(
     e: React.MouseEvent<SVGCircleElement, MouseEvent>,

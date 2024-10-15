@@ -6,7 +6,7 @@ import {
   allAnimatedTexts,
   allObjects,
   p_keyframes,
-  ticker,
+  globalRegulator,
 } from "./globals";
 
 declare module "fabric" {
@@ -280,7 +280,7 @@ function renderTextOld(
     p_keyframes,
     cv,
     props.duration,
-    ticker.currentTime
+    globalRegulator.currentTime
   );
 
   result._objects.forEach(function (object: any, index: number) {
@@ -397,7 +397,7 @@ function renderText(
     p_keyframes,
     cv,
     props.duration,
-    ticker.currentTime
+    globalRegulator.currentTime
   );
   // cv.setActiveObject(result);
   // cv.bringObjectToFront(result);
@@ -458,7 +458,7 @@ export class AnimatedText extends FabricObject {
 
     animateText(
       textFabricObject,
-      ticker.currentTime,
+      globalRegulator.currentTime,
       false,
       this.props,
       cv,
@@ -541,14 +541,14 @@ export class AnimatedText extends FabricObject {
     cv.renderAll();
     animateText(
       this.textFabricObject!,
-      ticker.currentTime,
+      globalRegulator.currentTime,
       false,
       this.props,
       cv,
       this.id,
       this.duration
     );
-    animate(false, ticker.currentTime, cv, allObjects, p_keyframes, 0);
+    animate(false, globalRegulator.currentTime, cv, allObjects, p_keyframes, 0);
   }
 
   setImportance(importance: number) {
@@ -558,8 +558,11 @@ export class AnimatedText extends FabricObject {
       animateDuration: this.duration,
     });
 
-    this.props.defaultScaleX = 1 + (this.importance - 0.5) * 2;
-    this.props.defaultScaleY = 1 + (this.importance - 0.5) * 2;
+    let scaleFactor = globalRegulator.impEnlargeFactor;
+    // lerp from 1 to 1 * scaleFactor
+    let lerpscale = LerpImportance(1, scaleFactor, importance);
+    this.props.defaultScaleX = lerpscale;
+    this.props.defaultScaleY = lerpscale;
 
     let endtime = this.textFabricObject?.get("endtime");
     let texts = activeLyrics.get(endtime);
@@ -571,8 +574,9 @@ export class AnimatedText extends FabricObject {
   }
 
   calcDurationFromImportance() {
-    return 500 + (this.importance - 0.5) * 500;
-    return this.importance * 1000; // TODO: change this! -- GEORGE
+    let scaleFactor = globalRegulator.impAnimSlowFactor;
+    let lerpscale = LerpImportance(500, scaleFactor, this.importance);
+    return lerpscale;
   }
 }
 
@@ -601,4 +605,27 @@ export function addAnimatedText(
   allAnimatedTexts.push(newtext);
   newtext.renderAnimatedText(canvas, startTime, endTime);
   return newtext;
+}
+
+/**
+ * If importance >= 0.5,
+ * Lerp from original to (original * scale) by (importance - 0.5).
+ * If importance < 0.5,
+ * Lerp from original to (original * 1/scale) by (0.5 - importance).
+ * @NOTE importance should be between 0 and 1.
+ * @returns the lerped value.
+ */
+function LerpImportance(original: number, scale: number, importance: number) {
+  // lerp from 1 to 1 * scaleFactor
+  if (importance >= 0.5) {
+    return (
+      original +
+      ((importance - 0.5) / (1 - 0.5)) * (original * scale - original)
+    );
+  } else {
+    return (
+      original +
+      ((0.5 - importance) / 0.5) * (original * (1 / scale) - original)
+    );
+  }
 }

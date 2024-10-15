@@ -20,7 +20,7 @@ import {
   allObjects,
   allAnimatedTexts,
   activeLyrics,
-  ticker,
+  globalRegulator,
 } from "@/helpers/globals";
 import {
   enhancedLyricsParse,
@@ -260,7 +260,7 @@ const App = () => {
       console.warn("[onSeekToTimeChange] invalid time: " + time);
       return;
     }
-    ticker.setCurrentTime(time);
+    globalRegulator.setCurrentTime(time);
     setCurrentTime(time);
     animate(false, time, canvas!, allObjects, p_keyframes, videoDuration);
   };
@@ -309,10 +309,10 @@ const App = () => {
         <Box width="30%" height="100%">
           <GeneralPanel
             onPlayClick={() => {
-              ticker.resume();
+              globalRegulator.resume();
               animate(
                 true,
-                ticker.currentTime,
+                globalRegulator.currentTime,
                 canvas!,
                 allObjects,
                 p_keyframes,
@@ -325,7 +325,7 @@ const App = () => {
               );
             }}
             onPauseClick={() => {
-              ticker.pause();
+              globalRegulator.pause();
             }}
             currentTime={currentTime}
             videoDuration={videoDuration}
@@ -529,7 +529,7 @@ function newAudioLayer(src: string, canvas: fabric.Canvas) {
   audio.crossOrigin = "anonymous";
   audio.addEventListener("loadeddata", () => {
     var nullobject = new fabric.Rect({
-      id: "Audio" + ticker.getAndUpdateCurrentIndex(),
+      id: "Audio" + globalRegulator.getAndUpdateCurrentIndex(),
       width: 10,
       height: 10,
       audioSrc: src,
@@ -583,7 +583,7 @@ export function playAudio(
         autoplay: true,
         update: async function () {
           currenttime = animation.value;
-          if (start && !ticker.paused) {
+          if (start && !globalRegulator.paused) {
             let this_pkey = p_keyframes.find((x) => x.id == object.id);
             if (!this_pkey) {
               return;
@@ -626,7 +626,7 @@ export function playAudio(
                 // this original code seems to try to prevent the audio from multi-playing by setting flag = true. It does not work now, however -- it only pauses the active audio. --GEORGE
               }
             }
-          } else if (ticker.paused) {
+          } else if (globalRegulator.paused) {
             console.log("[playAudio] now pausing audio");
             if (!obj) {
             } else {
