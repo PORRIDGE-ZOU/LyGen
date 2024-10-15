@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
-import ImportanceTab from "./ImportanceTab"; // Import the new component
-import { activeLyrics } from "@/helpers/globals";
+import ImportanceTab, { Customization, numberToRgb } from "./ImportanceTab"; // Import the new component
+import { activeLyrics, globalRegulator } from "@/helpers/globals";
 
 interface WidgetPanelProps {
   currentLyrics: string[][];
@@ -30,6 +30,26 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
       animatedText.setImportance(importanceValues[index]);
     });
     console.log(`Importance values for line ${lineIndex}:`, importanceValues);
+  };
+
+  const handleCustomizationChange = (customizations: Customization[]) => {
+    customizations.forEach((customization) => {
+      if (customization.type === "Enlarge by") {
+        globalRegulator.impEnlargeFactor = customization.factor;
+      } else if (customization.type === "Slow down animation by") {
+        globalRegulator.impAnimSlowFactor = customization.factor;
+      } else if (customization.type === "Shift color") {
+        let decode = numberToRgb(customization.factor);
+        globalRegulator.impRGBColor = [decode.r, decode.g, decode.b];
+      }
+    });
+
+    // refresh ALL animated texts
+    activeLyrics.forEach((line) => {
+      line.forEach((animatedText) => {
+        animatedText.refresh();
+      });
+    });
   };
 
   return (
@@ -62,6 +82,7 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
           <ImportanceTab
             lyrics={currentLyrics}
             onImportanceChange={handleImportanceChange}
+            onCustomizationChange={handleCustomizationChange}
           />
         )}
         {activeTab === 1 && (

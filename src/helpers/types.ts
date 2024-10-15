@@ -160,6 +160,7 @@ export class LyricsLine {
 import { newLayer } from "@/app/page";
 import { deleteObject, realignLineOfText } from "./canvasMisc";
 import { animate, animateText } from "./animation";
+import { hexToRgb, rgbToHex } from "@/components/ImportanceTab";
 // declare function save(): void;
 
 export interface AnimationProps {
@@ -310,43 +311,8 @@ function renderText(
   defaultScaleX?: number,
   defaultScaleY?: number
 ): FabricText {
-  var textOffset = 0;
-  var groupItems: fabric.Object[] = [];
   if (offset && startTime) {
     startTime -= offset;
-  }
-
-  function renderLetter(letter: string): fabric.Text {
-    var text = new FabricText(letter, {
-      left: textOffset,
-      top: 0,
-      fill: props.fill,
-      fontFamily: props.fontFamily,
-      fontSize: 24,
-      fontWeight: 400,
-      opacity: 1,
-    });
-    text.set({
-      defaultLeft: text.left,
-      defaultTop: text.top,
-      defaultScaleX: defaultScaleX ? defaultScaleX : 1,
-      defaultScaleY: defaultScaleY ? defaultScaleY : 1,
-      scaleX: defaultScaleX ? defaultScaleX : 1,
-      scaleY: defaultScaleY ? defaultScaleY : 1,
-    });
-    if (startTime && endTime) {
-      text.set("notnew", true);
-      text.set("starttime", startTime);
-      text.set("endtime", endTime);
-    }
-    // TODO: NOTE: For whatever reason, the width of the text is not being calculated correctly.
-    // it just doesn't consider the scaling factor. -- GEORGE
-    textOffset += text.get("width");
-    return text;
-  }
-
-  for (var i = 0; i < string.length; i++) {
-    groupItems.push(renderLetter(string.charAt(i)));
   }
 
   let result = new FabricText(string, {
@@ -553,16 +519,26 @@ export class AnimatedText extends FabricObject {
 
   setImportance(importance: number) {
     this.importance = importance;
+
+    // update duration
     this.duration = this.calcDurationFromImportance();
     this.textFabricObject?.set({
       animateDuration: this.duration,
     });
 
+    // update scale
     let scaleFactor = globalRegulator.impEnlargeFactor;
     // lerp from 1 to 1 * scaleFactor
     let lerpscale = LerpImportance(1, scaleFactor, importance);
     this.props.defaultScaleX = lerpscale;
     this.props.defaultScaleY = lerpscale;
+
+    // update color
+    let newColor = this.calcColorFromImportance();
+    this.props.fill = newColor;
+    this.textFabricObject?.set({
+      fill: newColor,
+    });
 
     let endtime = this.textFabricObject?.get("endtime");
     let texts = activeLyrics.get(endtime);
@@ -577,6 +553,77 @@ export class AnimatedText extends FabricObject {
     let scaleFactor = globalRegulator.impAnimSlowFactor;
     let lerpscale = LerpImportance(500, scaleFactor, this.importance);
     return lerpscale;
+  }
+
+  /**
+   * @NOTE only works if importance >= 0.5 for now! -- GEORGE
+   */
+  calcColorFromImportance() {
+    let RGB = globalRegulator.impRGBColor;
+    let currentFill = this.props.fill!;
+    const { r, g, b } = hexToRgb(currentFill);
+
+    // Calculate the new color
+    if (this.importance < 0.5) {
+      return currentFill;
+    }
+    function lerp(a: number, b: number, t: number): number {
+      return a + (b - a) * t;
+    }
+
+    function clamp(value: number): number {
+      return Math.round(Math.max(0, Math.min(255, value)));
+    }
+    let t = (this.importance - 0.5) / 0.5;
+    let newR = lerp(r, RGB[0], t);
+    let newG = lerp(g, RGB[1], t);
+    let newB = lerp(b, RGB[2], t);
+
+    newR = clamp(newR);
+    newG = clamp(newG);
+    newB = clamp(newB);
+    console.log(
+      "newR: ",
+      newR,
+      "newG: ",
+      newG,
+      "newB: ",
+      newB,
+      "hex: ",
+      rgbToHex(newR, newG, newB)
+    );
+    return rgbToHex(newR, newG, newB);
+  }
+
+  refresh() {
+    // refresh importance
+    let scaleFactor = globalRegulator.impEnlargeFactor;
+    let lerpscale = LerpImportance(1, scaleFactor, this.importance);
+    this.props.defaultScaleX = lerpscale;
+    this.props.defaultScaleY = lerpscale;
+
+    // refresh duration
+    this.duration = this.calcDurationFromImportance();
+    this.textFabricObject?.set({
+      animateDuration: this.duration,
+    });
+
+    // refresh color
+    let newColor = this.calcColorFromImportance();
+    this.props.fill = newColor;
+    this.textFabricObject?.set({
+      fill: newColor,
+    });
+
+    let endtime = this.textFabricObject?.get("endtime");
+    let texts = activeLyrics.get(endtime);
+    if (!texts) {
+      console.log(
+        "[AnimatedText::refresh()] Texts not found in activeLyrics map."
+      );
+      return;
+    }
+    realignLineOfText(texts, this.canvas!);
   }
 }
 

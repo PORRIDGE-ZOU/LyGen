@@ -12,13 +12,15 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { globalRegulator } from "@/helpers/globals";
+import ColorPickerInput from "./ColorPickerInput";
 
 interface ImportanceTabProps {
   lyrics: string[][];
   onImportanceChange: (lineIndex: number, importanceValues: number[]) => void;
+  onCustomizationChange: (customizations: Customization[]) => void;
 }
 
-interface Customization {
+export interface Customization {
   type: string; // e.g., "resize", "slow down"
   factor: number; // The user-defined factor
 }
@@ -32,6 +34,7 @@ const availableCustomizations = [
 const ImportanceTab: React.FC<ImportanceTabProps> = ({
   lyrics,
   onImportanceChange,
+  onCustomizationChange,
 }) => {
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
   const [importanceValues, setImportanceValues] = useState<number[]>([]);
@@ -39,6 +42,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [customizations, setCustomizations] = useState<Customization[]>([]); // Store customizations
+  const [impColor, setImpColor] = useState<string>("#ffffff");
 
   // Importance Curve ----------------
   // Initialize importance values when selected line changes
@@ -59,18 +63,28 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
+  useEffect(() => {
+    onImportanceChange(selectedLineIndex, importanceValues);
+  }, [importanceValues]);
+
   // Handle dot dragging
   const handleDotDrag = (index: number, newImportance: number) => {
     const clampedImportance = Math.max(0, Math.min(1, newImportance));
-    const updatedValues = [...importanceValues];
-    updatedValues[index] = clampedImportance;
-    setImportanceValues(updatedValues);
+    setImportanceValues((prevValues) => {
+      const updatedValues = [...prevValues];
+      updatedValues[index] = clampedImportance;
+      return updatedValues; // Return the updated values to apply them
+    });
   };
 
   // Callback when dragging ends
-  const handleDragEnd = () => {
-    onImportanceChange(selectedLineIndex, importanceValues);
-  };
+  // const handleDragEnd = () => {
+  //   // NOTE: weird. by spreading out the importance values, it will update the importance values in the parent component. But if I just pass the importanceValues, it won't update the importance values in the parent component. Why? Because the importanceValues is a state, and it's not updated immediately. So, we need to pass the updated values to the parent component.
+  //   // Ok. Now even this does not work. I am switching to useEffect to update the importance values in the parent component.
+  //   // -- GEORGE
+  //   // const updatedValues = [...importanceValues];
+  //   // onImportanceChange(selectedLineIndex, updatedValues);
+  // };
 
   // Calculate dimensions
   const graphHeight = 200;
@@ -81,16 +95,8 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   const xOffset = 30;
 
   // Customizations ----------------
-
   useEffect(() => {
-    customizations.forEach((customization) => {
-      if (customization.type === "Enlarge by") {
-        globalRegulator.impEnlargeFactor = customization.factor;
-      } else if (customization.type === "Slow down animation by") {
-        globalRegulator.impAnimSlowFactor = customization.factor;
-      }
-    });
-    console.log("Customizations updated:", customizations);
+    onCustomizationChange(customizations);
   }, [customizations]);
 
   const addCustomization = (type: string) => {
@@ -110,6 +116,19 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     setCustomizations(updated);
   };
 
+  const handleColorChange = (newcolor: string, index: number) => {
+    setImpColor(newcolor);
+    // newcolor is a hex color string. convert it to rgb
+    // Remove the leading '#' if it's there
+    let hex = newcolor.replace(/^#/, "");
+    // Parse the r, g, b values
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    let rgbencode = rgbToNumber(r, g, b);
+    handleFactorChange(index, rgbencode);
+  };
+
   // UI for Customizations
   const renderCustomizations = () => (
     <Container>
@@ -119,27 +138,46 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
         to...
       </Typography>
       <Box mt={2}>
-        {customizations.map((customization, index) => (
-          <Box key={index} display="flex" alignItems="center" mb={1}>
-            <span>{customization.type}</span>
-            <TextField
-              type="number"
-              value={customization.factor}
-              onChange={(e) =>
-                handleFactorChange(index, parseFloat(e.target.value))
-              }
-              size="small"
-              style={{ marginLeft: 8, marginRight: 8, width: "60px" }}
-            />
-            <IconButton
-              aria-label="delete"
-              size="small"
-              onClick={() => removeCustomization(index)}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        ))}
+        {customizations.map((customization, index) =>
+          customization.type === "Shift color" ? (
+            <Box key={index} display="flex" alignItems="center" mb={1}>
+              <span>{customization.type} (in gradient) toward </span>
+              <ColorPickerInput
+                color={impColor}
+                setColor={(color) => handleColorChange(color, index)}
+                text={impColor}
+                setText={(color) => handleColorChange(color, index)}
+              ></ColorPickerInput>
+              <IconButton
+                aria-label="delete"
+                size="small"
+                onClick={() => removeCustomization(index)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          ) : (
+            <Box key={index} display="flex" alignItems="center" mb={1}>
+              <span>{customization.type}</span>
+              <TextField
+                type="number"
+                value={customization.factor}
+                onChange={(e) =>
+                  handleFactorChange(index, parseFloat(e.target.value))
+                }
+                size="small"
+                style={{ marginLeft: 8, marginRight: 8, width: "60px" }}
+              />
+              <IconButton
+                aria-label="delete"
+                size="small"
+                onClick={() => removeCustomization(index)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          )
+        )}
         {/* Add New Customization */}
         <FormControl fullWidth variant="outlined" margin="dense">
           <InputLabel>Add Customization</InputLabel>
@@ -270,14 +308,14 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 
       // Convert newYPosition back to importance value
       const newImportance = 1 - (newYPosition - padding) / usableHeight;
-
       handleDotDrag(index, newImportance);
     };
 
     const onMouseUp = () => {
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
-      handleDragEnd();
+      console.log("Drag ended!");
+      // handleDragEnd();
     };
 
     document.addEventListener("mousemove", onMouseMove);
@@ -341,3 +379,34 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 };
 
 export default ImportanceTab;
+
+export function rgbToNumber(r: number, g: number, b: number) {
+  return (r << 16) | (g << 8) | b;
+}
+
+export function numberToRgb(num: number) {
+  const r = (num >> 16) & 0xff;
+  const g = (num >> 8) & 0xff;
+  const b = num & 0xff;
+  return { r, g, b };
+}
+
+export function hexToRgb(hex: string) {
+  // Remove the leading '#' if it's there
+  hex = hex!.replace(/^#/, "");
+  // Parse the r, g, b values
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return { r, g, b };
+}
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number): string => {
+    n = isNaN(n) ? 0 : Math.max(0, Math.min(255, Math.round(n)));
+    const hex = n.toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}

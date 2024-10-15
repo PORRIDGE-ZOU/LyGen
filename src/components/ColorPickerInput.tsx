@@ -57,9 +57,9 @@ const ColorPickerInput = ({
         newText.length === 4
           ? `#${newText[1]}${newText[1]}${newText[2]}${newText[2]}${newText[3]}${newText[3]}`
           : newText;
-      console.log(
-        "[ColorPickerInput::handleTextChange] Valid color: " + fullHexColor
-      );
+      // console.log(
+      //   "[ColorPickerInput::handleTextChange] Valid color: " + fullHexColor
+      // );
       setColor(fullHexColor);
     }
 
@@ -78,6 +78,7 @@ const ColorPickerInput = ({
           <InputAdornment position="end">
             <input
               type="color"
+              defaultValue={"#ffffff"}
               value={color}
               onChange={handleColorChange}
               style={{

@@ -57,6 +57,10 @@ class GlobalRegulator {
   public static paused = false;
   public static impEnlargeFactor = 3;
   public static impAnimSlowFactor = 0.4;
+  /**
+   * @CAUTION changing this value will change the color of all the animated texts
+   */
+  public static impRGBColor = [255, 255, 255];
 
   public static setCurrentTime(time: number): void {
     GlobalRegulator.currentTime = time;
