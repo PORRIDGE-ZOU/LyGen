@@ -78,6 +78,37 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
     );
   };
 
+  const handleWordCloudChange = (
+    lineIndex: number,
+    layout: {
+      word: string;
+      x: number;
+      y: number;
+      size: number;
+      rotate: number;
+    }[]
+  ) => {
+    let keys = Array.from(activeLyrics.keys());
+    let changedKey = keys[lineIndex];
+    let changedLine = activeLyrics.get(changedKey);
+    if (!changedLine) {
+      console.warn(
+        `[handleWordCloudChange] Line ${lineIndex} not found in the active lyrics map.`
+      );
+      return;
+    }
+    changedLine.forEach((animatedText, index) => {
+      animatedText.textFabricObject!.set({
+        left: layout[index].x,
+        top: layout[index].y,
+        fontSize: layout[index].size,
+        angle: layout[index].rotate,
+        defaultLeft: layout[index].x,
+        defaultTop: layout[index].y,
+      });
+    });
+  };
+
   return (
     <Box display="flex" height="100%">
       {/* Left side with Tabs */}
@@ -110,6 +141,7 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
             onImportanceChange={handleImportanceChange}
             onCustomizationChange={handleCustomizationChange}
             onAnimationChange={handleAnimationChange}
+            onWordCloudLayoutComplete={handleWordCloudChange}
           />
         )}
         {activeTab === 1 && (

@@ -9,19 +9,32 @@ import {
   TextField,
   Typography,
   Container,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { globalRegulator } from "@/helpers/globals";
 import ColorPickerInput from "./ColorPickerInput";
-import { EB_Garamond } from "next/font/google";
 // Import the animation presets
 import { animationPresets } from "@/helpers/globals";
+import WordCloudGenerator from "./WordCloudGenerator";
+import { set } from "animejs";
 
 interface ImportanceTabProps {
   lyrics: string[][];
   onImportanceChange: (lineIndex: number, importanceValues: number[]) => void;
   onCustomizationChange: (customizations: Customization[]) => void;
   onAnimationChange: (lineIndex: number, animation: string) => void;
+  onWordCloudLayoutComplete: (
+    lineIndex: number,
+    layout: {
+      word: string;
+      x: number;
+      y: number;
+      size: number;
+      rotate: number;
+    }[]
+  ) => void;
 }
 
 export interface Customization {
@@ -40,6 +53,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   onImportanceChange,
   onCustomizationChange,
   onAnimationChange,
+  onWordCloudLayoutComplete,
 }) => {
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
   const [importanceValues, setImportanceValues] = useState<number[]>([]);
@@ -54,11 +68,15 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     [key: number]: string;
   }>({});
 
+  const [useWordCloud, setUseWordCloud] = useState(false);
+  const [wordCloudWords, setWordCloudWords] = useState<string[]>([]);
+
   // Importance Curve ----------------
-  // Initialize importance values when selected line changes
+  // Initialize importance values and wordcloud words when selected line changes
   useEffect(() => {
     const wordsInLine = lyrics[selectedLineIndex]?.length || 0;
     setImportanceValues(Array(wordsInLine).fill(0.5)); // Default importance 0.5
+    setWordCloudWords(lyrics[selectedLineIndex] || []);
   }, [selectedLineIndex, lyrics]);
 
   // Update container width on mount and resize
@@ -136,6 +154,19 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
       [selectedLineIndex]: animation,
     }));
     onAnimationChange(selectedLineIndex, animation);
+  };
+
+  // Word Cloud ----------------
+  const handleLayoutComplete = (
+    layout: {
+      word: string;
+      x: number;
+      y: number;
+      size: number;
+      rotate: number;
+    }[]
+  ) => {
+    console.log("Word cloud layout complete!", layout);
   };
 
   // UI for Customizations
@@ -302,6 +333,27 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 
       {/* Customizations */}
       {renderCustomizations()}
+
+      {/* Word Cloud */}
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={useWordCloud}
+            onChange={(e) => setUseWordCloud(e.target.checked)}
+          />
+        }
+        label="I want to use Wordcloud for this line"
+      />
+      <div>
+        {/* <WordCloudGenerator
+          words={wordCloudWords}
+          importanceValues={importanceValues}
+          width={960}
+          height={540}
+          onLayoutComplete={handleLayoutComplete}
+        /> */}
+        {/* Render your Fabric.js canvas here and use 'layout' to position words */}
+      </div>
     </Box>
   );
 
