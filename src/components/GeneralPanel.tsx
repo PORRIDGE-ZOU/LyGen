@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Box, Button, TextField, Typography, Slider } from "@mui/material";
 import { AudioUploadButton, TextUploadButton } from "./FileUploader";
 
 interface GeneralPanelProps {
@@ -23,6 +23,16 @@ export default function GeneralPanel({
   onLyricsUpload,
   onSeekToTimeChange,
 }: GeneralPanelProps) {
+  const handleSliderChange = (event: Event, newValue: number | number[]) => {
+    const targetValue = Array.isArray(newValue) ? newValue[0] : newValue;
+    const syntheticEvent = {
+      target: {
+        value: targetValue.toString(),
+      },
+    } as React.ChangeEvent<HTMLInputElement>;
+    onSeekToTimeChange(syntheticEvent);
+  };
+
   return (
     <Box
       display="flex"
@@ -63,8 +73,19 @@ export default function GeneralPanel({
         <Typography>Current Time: {currentTime}</Typography>
       </Box>
 
+      {/* Current Time Slider */}
+      <Box marginBottom="8px" display="flex" alignItems="center">
+        <Slider
+          value={currentTime}
+          min={0}
+          max={videoDuration}
+          onChange={handleSliderChange}
+          style={{ marginLeft: "8px" }}
+        />
+      </Box>
+
       {/* Seek to Time */}
-      <Box marginBottom="8px">
+      <Box marginBottom="8px" display="flex" alignItems="center">
         <TextField
           id="seek-to-time"
           label="Seek to Time (in ms)"

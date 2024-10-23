@@ -192,7 +192,7 @@ function setText(
   }
 }
 
-function renderTextOld(
+function renderText_LetterWise(
   string: string,
   props: AnimationProps,
   x: number,
@@ -382,9 +382,21 @@ export class AnimatedText extends FabricObject {
   textFabricObject: FabricText | null = null;
   props: AnimationProps;
   id: string;
-  importance: number = 5;
   duration: number = 100;
   canvas: fabric.Canvas | undefined = undefined;
+  private _importance: number = 0.5; // Private variable for importance
+  // Getter and setter for importance
+  get importance(): number {
+    return this._importance;
+  }
+  set importance(value: number) {
+    this._importance = Math.max(0, Math.min(1, value));
+    if (value > 1 || value < 0) {
+      console.error(
+        "Something went wrong with setting importance. It should be between 0 and 1."
+      );
+    }
+  }
 
   constructor(
     text: string,
@@ -583,7 +595,7 @@ export class AnimatedText extends FabricObject {
     newG = clamp(newG);
     newB = clamp(newB);
     console.log(
-      "newR: ",
+      "[calcColorFromImp] newR: ",
       newR,
       "newG: ",
       newG,
@@ -596,7 +608,7 @@ export class AnimatedText extends FabricObject {
   }
 
   refresh() {
-    // refresh importance
+    // refresh scale
     let scaleFactor = globalRegulator.impEnlargeFactor;
     let lerpscale = LerpImportance(1, scaleFactor, this.importance);
     this.props.defaultScaleX = lerpscale;
@@ -642,7 +654,7 @@ export function addAnimatedText(
     preset: "shrink", // TODO: This is the animation for now -- GEORGE
     typeAnim: "word",
     order: "forward",
-    fontFamily: "Source Sans Pro",
+    fontFamily: globalRegulator.defaultFont,
     duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
     easing: "easeInQuad",
     fill: "#FFFFFF",
@@ -663,6 +675,9 @@ export function addAnimatedText(
  * @returns the lerped value.
  */
 function LerpImportance(original: number, scale: number, importance: number) {
+  if (importance == 0.5) {
+    return original;
+  }
   // lerp from 1 to 1 * scaleFactor
   if (importance >= 0.5) {
     return (

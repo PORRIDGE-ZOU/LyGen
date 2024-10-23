@@ -13,6 +13,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import { globalRegulator } from "@/helpers/globals";
 import ColorPickerInput from "./ColorPickerInput";
+import { EB_Garamond } from "next/font/google";
 
 interface ImportanceTabProps {
   lyrics: string[][];
@@ -109,7 +110,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     setCustomizations(updated);
   };
 
-  // Handle factor change
   const handleFactorChange = (index: number, factor: number) => {
     const updated = [...customizations];
     updated[index].factor = factor;
@@ -132,8 +132,10 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   // UI for Customizations
   const renderCustomizations = () => (
     <Container>
-      <Typography variant="h6">Define what importance means!</Typography>
-      <Typography variant="body1">
+      <Typography variant="h6" fontFamily={"Cormorant Garamond"}>
+        Define what importance means!
+      </Typography>
+      <Typography variant="body1" fontFamily={"Cormorant Garamond"}>
         By changing the importance of a word from 0.5 to 1, I want the word
         to...
       </Typography>
@@ -340,7 +342,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
       const prev = points[i - 1];
       const current = points[i];
       const midX = (prev.x + current.x) / 2;
-      path += ` Q ${midX},${prev.y} ${current.x},${current.y}`;
+      path += ` L ${current.x},${current.y}`;
     }
     return path;
   }

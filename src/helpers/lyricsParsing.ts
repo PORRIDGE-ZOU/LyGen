@@ -234,7 +234,7 @@ export function enhancedLyricsParseWithString(
 
   // loop over the lyrics objects, combine words into lines, and calculate the width of the line
   let ctx = canvas!.getContext();
-  ctx.font = "400 24px Source Sans Pro";
+  ctx.font = "400 24px " + globalRegulator.defaultFont;
   var widthOfSpace = ctx.measureText(" ").width + 0;
   let lineWidths: number[] = [];
   var currentLine = "";

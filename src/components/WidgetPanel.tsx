@@ -10,7 +10,7 @@ interface WidgetPanelProps {
 export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
   const [activeTab, setActiveTab] = useState(0);
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
@@ -35,10 +35,13 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
   const handleCustomizationChange = (customizations: Customization[]) => {
     customizations.forEach((customization) => {
       if (customization.type === "Enlarge by") {
+        console.log("[handleCustChange] Enlarge by", customization.factor);
         globalRegulator.impEnlargeFactor = customization.factor;
       } else if (customization.type === "Slow down animation by") {
+        console.log("[handleCustChange] Slow down by", customization.factor);
         globalRegulator.impAnimSlowFactor = customization.factor;
       } else if (customization.type === "Shift color") {
+        console.log("[handleCustChange] Shift color by", customization.factor);
         let decode = numberToRgb(customization.factor);
         globalRegulator.impRGBColor = [decode.r, decode.g, decode.b];
       }
@@ -59,7 +62,7 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
         <Tabs
           orientation="vertical"
           value={activeTab}
-          onChange={handleChange}
+          onChange={handleTabChange}
           TabIndicatorProps={{ style: { display: "none" } }}
         >
           <Tab label="Lyric Importance" />

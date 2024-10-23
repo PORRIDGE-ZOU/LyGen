@@ -6,7 +6,6 @@ import {
   p_keyframes,
   activeLyrics,
 } from "./globals";
-import { findCurrentAndNextLyrics } from "./lyricsParsing";
 import { AnimationProps, LygenObject, PKeyframe } from "./types";
 import * as fabric from "fabric";
 import { playAudio } from "@/app/page";
