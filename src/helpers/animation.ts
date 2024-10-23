@@ -260,7 +260,7 @@ function setObjectValue(
   inst.renderAll();
 }
 
-export function animateTextOld(
+export function animateText_LetterWise(
   group: fabric.Group,
   currentTime: number,
   play: boolean,
@@ -389,20 +389,13 @@ export function animateText(
   id: string,
   animationDuration?: number // not used for now
 ) {
-  // this should be the actual starting time of this animated text
-  // var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
   var starttime = text.get("starttime") || 0;
-  // this should be the actual ending time of this animated text
-  // let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
-  // currentTime -= starttime;
-  // each item should be a letter (fabric.Text)
   let item = text;
   let left = item.defaultLeft!;
   let top = item.defaultTop!;
   let scaleX = props.defaultScaleX ? props.defaultScaleX : item.defaultScaleX!;
   let scaleY = props.defaultScaleY ? props.defaultScaleY : item.defaultScaleY!;
   var duration = animationDuration ? animationDuration : props.duration;
-  // let starttime = endtime - duration;
   let relativeTime = currentTime - (starttime - duration);
   var animation = {
     opacity: 0,

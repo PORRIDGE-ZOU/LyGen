@@ -14,11 +14,14 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { globalRegulator } from "@/helpers/globals";
 import ColorPickerInput from "./ColorPickerInput";
 import { EB_Garamond } from "next/font/google";
+// Import the animation presets
+import { animationPresets } from "@/helpers/globals";
 
 interface ImportanceTabProps {
   lyrics: string[][];
   onImportanceChange: (lineIndex: number, importanceValues: number[]) => void;
   onCustomizationChange: (customizations: Customization[]) => void;
+  onAnimationChange: (lineIndex: number, animation: string) => void;
 }
 
 export interface Customization {
@@ -36,6 +39,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   lyrics,
   onImportanceChange,
   onCustomizationChange,
+  onAnimationChange,
 }) => {
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
   const [importanceValues, setImportanceValues] = useState<number[]>([]);
@@ -44,6 +48,11 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 
   const [customizations, setCustomizations] = useState<Customization[]>([]); // Store customizations
   const [impColor, setImpColor] = useState<string>("#ffffff");
+
+  // Store selected animations for each line
+  const [lineAnimations, setLineAnimations] = useState<{
+    [key: number]: string;
+  }>({});
 
   // Importance Curve ----------------
   // Initialize importance values when selected line changes
@@ -77,15 +86,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
       return updatedValues; // Return the updated values to apply them
     });
   };
-
-  // Callback when dragging ends
-  // const handleDragEnd = () => {
-  //   // NOTE: weird. by spreading out the importance values, it will update the importance values in the parent component. But if I just pass the importanceValues, it won't update the importance values in the parent component. Why? Because the importanceValues is a state, and it's not updated immediately. So, we need to pass the updated values to the parent component.
-  //   // Ok. Now even this does not work. I am switching to useEffect to update the importance values in the parent component.
-  //   // -- GEORGE
-  //   // const updatedValues = [...importanceValues];
-  //   // onImportanceChange(selectedLineIndex, updatedValues);
-  // };
 
   // Calculate dimensions
   const graphHeight = 200;
@@ -127,6 +127,15 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     const b = parseInt(hex.substring(4, 6), 16);
     let rgbencode = rgbToNumber(r, g, b);
     handleFactorChange(index, rgbencode);
+  };
+
+  // Handle animation change
+  const handleAnimationChange = (animation: string) => {
+    setLineAnimations((prevAnimations) => ({
+      ...prevAnimations,
+      [selectedLineIndex]: animation,
+    }));
+    onAnimationChange(selectedLineIndex, animation);
   };
 
   // UI for Customizations
@@ -202,7 +211,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 
   return (
     <Box>
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu for Lyrics */}
       <FormControl fullWidth variant="outlined" margin="dense">
         <InputLabel>Select Lyric Line</InputLabel>
         <Select
@@ -213,6 +222,22 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
           {lyrics.map((line, index) => (
             <MenuItem key={index} value={index}>
               {line.join(" ")}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Dropdown Menu for Animation */}
+      <FormControl fullWidth variant="outlined" margin="normal">
+        <InputLabel>Select animation for this line</InputLabel>
+        <Select
+          value={lineAnimations[selectedLineIndex] || ""}
+          onChange={(e) => handleAnimationChange(e.target.value as string)}
+          label="Select Animation"
+        >
+          {animationPresets.map((animation) => (
+            <MenuItem key={animation} value={animation}>
+              {animation}
             </MenuItem>
           ))}
         </Select>
@@ -317,7 +342,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       console.log("Drag ended!");
-      // handleDragEnd();
     };
 
     document.addEventListener("mousemove", onMouseMove);
@@ -336,12 +360,10 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
       y: valueToYPosition(value),
     }));
 
-    // Create smooth curve using cubic Bezier curves
+    // Create smooth curve using lines
     let path = `M ${points[0].x},${points[0].y}`;
     for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
       const current = points[i];
-      const midX = (prev.x + current.x) / 2;
       path += ` L ${current.x},${current.y}`;
     }
     return path;

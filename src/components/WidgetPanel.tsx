@@ -23,7 +23,9 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
     let changedKey = keys[lineIndex];
     let changedLine = activeLyrics.get(changedKey);
     if (!changedLine) {
-      console.error(`Line ${lineIndex} not found in the active lyrics map.`);
+      console.warn(
+        `[handleImpChange] Line ${lineIndex} not found in the active lyrics map.`
+      );
       return;
     }
     changedLine.forEach((animatedText, index) => {
@@ -53,6 +55,27 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
         animatedText.refresh();
       });
     });
+  };
+
+  const handleAnimationChange = (lineIndex: number, animation: string) => {
+    let keys = Array.from(activeLyrics.keys());
+    let changedKey = keys[lineIndex];
+    let changedLine = activeLyrics.get(changedKey);
+    if (!changedLine) {
+      console.warn(
+        `[handleAnimationChange] Line ${lineIndex} not found in the active lyrics map.`
+      );
+      return;
+    }
+    changedLine.forEach((animatedText) => {
+      animatedText.props.preset = animation;
+    });
+    console.log(
+      "[handleAnimationChange] changed index",
+      lineIndex,
+      " to:",
+      animation
+    );
   };
 
   return (
@@ -86,6 +109,7 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
             lyrics={currentLyrics}
             onImportanceChange={handleImportanceChange}
             onCustomizationChange={handleCustomizationChange}
+            onAnimationChange={handleAnimationChange}
           />
         )}
         {activeTab === 1 && (
