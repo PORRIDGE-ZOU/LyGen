@@ -1,5 +1,5 @@
 import { newLayer } from "@/app/page";
-import { newTextbox } from "./canvasMisc";
+import { newTextbox } from "./misc";
 import {
   activeLyrics,
   allObjects,

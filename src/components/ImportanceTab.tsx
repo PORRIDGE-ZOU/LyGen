@@ -13,12 +13,11 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { globalRegulator } from "@/helpers/globals";
 import ColorPickerInput from "./ColorPickerInput";
 // Import the animation presets
 import { animationPresets } from "@/helpers/globals";
+import { rgbToNumber } from "@/helpers/misc";
 import WordCloudGenerator from "./WordCloudGenerator";
-import { set } from "animejs";
 
 interface ImportanceTabProps {
   lyrics: string[][];
@@ -455,34 +454,3 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 };
 
 export default ImportanceTab;
-
-export function rgbToNumber(r: number, g: number, b: number) {
-  return (r << 16) | (g << 8) | b;
-}
-
-export function numberToRgb(num: number) {
-  const r = (num >> 16) & 0xff;
-  const g = (num >> 8) & 0xff;
-  const b = num & 0xff;
-  return { r, g, b };
-}
-
-export function hexToRgb(hex: string) {
-  // Remove the leading '#' if it's there
-  hex = hex!.replace(/^#/, "");
-  // Parse the r, g, b values
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  return { r, g, b };
-}
-
-export function rgbToHex(r: number, g: number, b: number): string {
-  const toHex = (n: number): string => {
-    n = isNaN(n) ? 0 : Math.max(0, Math.min(255, Math.round(n)));
-    const hex = n.toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
-  };
-
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}

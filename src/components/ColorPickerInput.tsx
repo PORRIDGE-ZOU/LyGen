@@ -78,7 +78,6 @@ const ColorPickerInput = ({
           <InputAdornment position="end">
             <input
               type="color"
-              defaultValue={"#ffffff"}
               value={color}
               onChange={handleColorChange}
               style={{

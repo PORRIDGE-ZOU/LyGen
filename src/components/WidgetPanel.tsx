@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
-import ImportanceTab, { Customization, numberToRgb } from "./ImportanceTab"; // Import the new component
+import ImportanceTab, { Customization } from "./ImportanceTab"; // Import the new component
 import { activeLyrics, globalRegulator } from "@/helpers/globals";
+import { numberToRgb } from "@/helpers/misc";
 
 interface WidgetPanelProps {
   currentLyrics: string[][];

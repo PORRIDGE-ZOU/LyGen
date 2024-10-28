@@ -1,5 +1,4 @@
 import { FabricObject, FabricText } from "fabric";
-import anime from "animejs";
 import * as fabric from "fabric";
 import {
   activeLyrics,
@@ -158,9 +157,9 @@ export class LyricsLine {
 }
 
 import { newLayer } from "@/app/page";
-import { deleteObject, realignLineOfText } from "./canvasMisc";
+import { deleteObject, realignLineOfText } from "./misc";
 import { animate, animateText } from "./animation";
-import { hexToRgb, rgbToHex } from "@/components/ImportanceTab";
+import { hexToRgb, rgbToHex } from "@/helpers/misc";
 // declare function save(): void;
 
 export interface AnimationProps {

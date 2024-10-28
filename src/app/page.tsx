@@ -4,22 +4,13 @@
 import React, { useState, useEffect } from "react";
 import * as fabric from "fabric";
 import { FabricObject, Canvas } from "fabric";
-import { Box, Button, Container, Typography, TextField } from "@mui/material";
+import { Box, Container } from "@mui/material";
 import anime from "animejs/lib/anime.es.js";
-import {
-  PKeyframe,
-  LyricsLine,
-  AnimatedText,
-  LygenObject,
-  addAnimatedText,
-} from "../helpers/types";
-import { AudioUploadButton, TextUploadButton } from "@/components/FileUploader";
+import { PKeyframe, LyricsLine, LygenObject } from "../helpers/types";
 import {
   props,
   p_keyframes,
   allObjects,
-  allAnimatedTexts,
-  activeLyrics,
   globalRegulator,
 } from "@/helpers/globals";
 import {
@@ -31,9 +22,8 @@ import LyricSearch from "@/components/LyricsSearch";
 import GeneralPanel from "@/components/GeneralPanel";
 import WidgetPanel from "@/components/WidgetPanel";
 import InfoPanel from "@/components/InfoPanel";
-import { reselect } from "@/helpers/canvasMisc";
+import { reselect } from "@/helpers/misc";
 import { animate } from "@/helpers/animation";
-import { set } from "animejs";
 
 // ------------------ MAIN COMPONENT ------------------
 const App = () => {
