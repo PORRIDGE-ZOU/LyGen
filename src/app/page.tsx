@@ -37,7 +37,7 @@ const App = () => {
   const [activeXPos, setActiveXPos] = useState<number>(0);
   const [activeYPos, setActiveYPos] = useState<number>(0);
   const [lyrics, setLyrics] = useState<string>("Test Lyrics\nTest Lyrics2");
-  const [lyrics_forWidget, setLyrics_forWidget] = useState<string[][]>([[]]);
+  const [lyrics_forWidget, setLyrics_forWidget] = useState<string[][]>([]);
   /** This is only used for rerendering GeneralPanel. */
   const [currentTime, setCurrentTime] = useState<number>(
     Math.round(globalRegulator.currentTime)

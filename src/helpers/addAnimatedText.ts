@@ -11,19 +11,24 @@ export function addAnimatedText(
   startTime?: number,
   endTime?: number
 ) {
-  var newtext = new AnimatedText(text, id, {
-    left: x,
-    top: y,
-    preset: "shrink", // TODO: This is the animation for now -- GEORGE
-    typeAnim: "word",
-    order: "forward",
-    fontFamily: globalRegulator.defaultFont,
-    duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
-    easing: "easeInQuad",
-    fill: "#ffffff",
-    defaultScaleX: 1,
-    defaultScaleY: 1,
-  });
+  var newtext = new AnimatedText(
+    text,
+    id,
+    {
+      left: x,
+      top: y,
+      preset: "shrink", // TODO: This is the animation for now -- GEORGE
+      typeAnim: "word",
+      order: "forward",
+      fontFamily: globalRegulator.defaultFont,
+      duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
+      easing: "easeInQuad",
+      fill: "#ffffff",
+      defaultScaleX: 1,
+      defaultScaleY: 1,
+    },
+    0.5 // This is the importance -- GEORGE
+  );
   allAnimatedTexts.push(newtext);
   newtext.renderAnimatedText(canvas, startTime, endTime);
   return newtext;

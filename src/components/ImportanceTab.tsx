@@ -19,12 +19,14 @@ import {
   activeLyrics,
   animationPresets,
   globalRegulator,
+  p_keyframes,
 } from "@/helpers/globals";
 import { getLineFromIndex, rgbToNumber } from "@/helpers/misc";
 import WordCloudGenerator from "./WordCloudGenerator";
 
 interface ImportanceTabProps {
   lyrics: string[][];
+  onLyricsLineSelect: (lineIndex: number) => void;
   onImportanceChange: (lineIndex: number, importanceValues: number[]) => void;
   onCustomizationChange: (customizations: Customization[]) => void;
   onAnimationChange: (lineIndex: number, animation: string) => void;
@@ -53,18 +55,22 @@ const availableCustomizations = [
 
 const ImportanceTab: React.FC<ImportanceTabProps> = ({
   lyrics,
+  onLyricsLineSelect,
   onImportanceChange,
   onCustomizationChange,
   onAnimationChange,
   onWordCloudLayoutComplete,
 }) => {
-  const [selectedLineIndex, setSelectedLineIndex] = useState(0);
+  const [selectedLineIndex, setSelectedLineIndex] = useState(
+    lyrics.length > 0 ? 0 : -1
+  );
   const [importanceValues, setImportanceValues] = useState<number[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [customizations, setCustomizations] = useState<Customization[]>([]); // Store customizations
   const [impColor, setImpColor] = useState<string>("#ffffff");
+  const [selectedCustomization, setSelectedCustomization] = useState("");
 
   // Store selected animations for each line
   const [lineAnimations, setLineAnimations] = useState<{
@@ -77,9 +83,11 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   // Importance Curve ----------------
   // Initialize importance values and wordcloud words when selected line changes
   useEffect(() => {
-    const wordsInLine = lyrics[selectedLineIndex]?.length || 0;
-    setImportanceValues(Array(wordsInLine).fill(0.5)); // Default importance 0.5
-    setWordCloudWords(lyrics[selectedLineIndex] || []);
+    if (lyrics[selectedLineIndex]) {
+      const wordsInLine = lyrics[selectedLineIndex].length;
+      setImportanceValues(Array(wordsInLine).fill(0.5)); // Default importance 0.5
+      setWordCloudWords(lyrics[selectedLineIndex]);
+    }
   }, [selectedLineIndex, lyrics]);
 
   // Update container width on mount and resize
@@ -100,7 +108,9 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   //   onImportanceChange(selectedLineIndex, importanceValues);
   // }, [importanceValues, onImportanceChange, selectedLineIndex]);
   useEffect(() => {
-    onImportanceChange(selectedLineIndex, importanceValues);
+    if (importanceValues.length > 0) {
+      onImportanceChange(selectedLineIndex, importanceValues);
+    }
   }, [importanceValues, selectedLineIndex]);
 
   // Handle dot dragging
@@ -127,7 +137,8 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   }, [customizations]);
 
   const addCustomization = (type: string) => {
-    setCustomizations([...customizations, { type, factor: 1 }]); // Default factor of 1
+    setCustomizations([...customizations, { type, factor: 1 }]);
+    setSelectedCustomization(""); // Reset selection after adding
   };
 
   const removeCustomization = (index: number) => {
@@ -176,6 +187,13 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   ) => {
     console.log("Word cloud layout complete!", layout);
   };
+
+  /**
+   * PREVENT RENDERING WHEN LYRICS ARE LOADING
+   */
+  if (!lyrics || lyrics.length === 0) {
+    return <div>Loading lyrics...</div>;
+  }
 
   // UI for Customizations
   const renderCustomizations = () => (
@@ -229,14 +247,18 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
           )
         )}
         {/* Add New Customization */}
-        <FormControl fullWidth variant="outlined" margin="dense">
-          <InputLabel>Add Customization</InputLabel>
+        <FormControl fullWidth variant="outlined" margin="normal">
+          <InputLabel></InputLabel>
           <Select
             onChange={(e) => addCustomization(e.target.value as string)}
-            value=""
+            value={selectedCustomization}
+            displayEmpty
           >
+            <MenuItem value="" disabled>
+              Select a customization
+            </MenuItem>
             {availableCustomizations
-              .filter((type) => !customizations.some((c) => c.type === type)) // Exclude already added
+              .filter((type) => !customizations.some((c) => c.type === type))
               .map((type) => (
                 <MenuItem key={type} value={type}>
                   {type}
@@ -248,17 +270,10 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     </Container>
   );
 
-  const handleLyricsLineSelect = (e: SelectChangeEvent<number>) => {
+  const lyricsLineSelect = (e: SelectChangeEvent<number>) => {
     console.log("Selected line index:", e.target.value);
-    let line = getLineFromIndex(e.target.value as number);
-    if (line === undefined) {
-      return;
-    }
-    let lastText = line[line.length - 1];
-    let seekTime = lastText.textFabricObject?.get("endtime") - 0.05;
-    globalRegulator.setCurrentTime(seekTime);
-
     setSelectedLineIndex(e.target.value as number);
+    onLyricsLineSelect(e.target.value as number);
   };
 
   return (
@@ -268,7 +283,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
         <InputLabel>Select Lyric Line</InputLabel>
         <Select
           value={selectedLineIndex}
-          onChange={(e) => handleLyricsLineSelect(e)}
+          onChange={(e) => lyricsLineSelect(e)}
           label="Select Lyric Line"
         >
           {lyrics.map((line, index) => (
@@ -281,12 +296,16 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 
       {/* Dropdown Menu for Animation */}
       <FormControl fullWidth variant="outlined" margin="normal">
-        <InputLabel>Select animation for this line</InputLabel>
+        <InputLabel></InputLabel>
         <Select
           value={lineAnimations[selectedLineIndex] || ""}
           onChange={(e) => handleAnimationChange(e.target.value as string)}
           label="Select Animation"
+          displayEmpty
         >
+          <MenuItem value="" disabled>
+            Select an animation
+          </MenuItem>
           {animationPresets.map((animation) => (
             <MenuItem key={animation} value={animation}>
               {animation}

@@ -395,7 +395,7 @@ export function animateText(
   id: string,
   animationDuration?: number // not used for now
 ) {
-  var starttime = text.get("starttime") || 0;
+  let starttime = text.get("starttime") || 0;
   let item = text;
   let left = item.defaultLeft!;
   let top = item.defaultTop!;

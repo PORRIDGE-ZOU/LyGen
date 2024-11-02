@@ -30,12 +30,13 @@ export class AnimatedText extends FabricObject {
     return this._importance;
   }
   set importance(value: number) {
-    this._importance = Math.max(0, Math.min(1, value));
-    if (value > 1 || value < 0) {
+    if (isNaN(value)) {
       console.error(
-        "Something went wrong with setting importance. It should be between 0 and 1."
+        `Invalid importance value (NaN) for text: ${this.text}. Setting default importance to 0.5.`
       );
+      value = 0.5; // Default importance
     }
+    this._importance = Math.max(0, Math.min(1, value));
   }
 
   constructor(
@@ -52,7 +53,15 @@ export class AnimatedText extends FabricObject {
     if (importance) {
       this.importance = importance;
       this.duration = this.calcDurationFromImportance();
+    } else {
+      this.importance = 0.5;
+      this.duration = 100;
+      console.warn(
+        "Importance not set for AnimatedText. Defaulting to 0.5. text: ",
+        text
+      );
     }
+    console.log(`Creating AnimatedText with fill: ${props.fill}, id: ${id}`);
   }
 
   renderAnimatedText(cv: fabric.Canvas, startTime?: number, endTime?: number) {
@@ -216,7 +225,7 @@ export class AnimatedText extends FabricObject {
     const { r, g, b } = hexToRgb(currentFill);
 
     // Calculate the new color
-    if (this.importance < 0.5) {
+    if (this.importance <= 0.5) {
       return currentFill;
     }
     function lerp(a: number, b: number, t: number): number {
@@ -244,6 +253,12 @@ export class AnimatedText extends FabricObject {
     //   "hex: ",
     //   rgbToHex(newR, newG, newB)
     // );
+    console.log(
+      `Calculating color with currentFill: ${currentFill}, importance: ${this.importance}`
+    );
+    if (Number.isNaN(this.importance)) {
+      console.log("Text: ", this.text, " has NaN importance.");
+    }
     return rgbToHex(newR, newG, newB);
   }
 

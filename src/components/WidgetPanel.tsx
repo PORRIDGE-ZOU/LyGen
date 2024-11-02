@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Box, Tab, Tabs, Typography } from "@mui/material";
+import { Box, SelectChangeEvent, Tab, Tabs, Typography } from "@mui/material";
 import ImportanceTab, { Customization } from "./ImportanceTab"; // Import the new component
 import { activeLyrics, globalRegulator } from "@/helpers/globals";
 import { getLineFromIndex, numberToRgb } from "@/helpers/misc";
@@ -15,9 +15,39 @@ export default function WidgetPanel({
   reAnimate,
 }: WidgetPanelProps) {
   const [activeTab, setActiveTab] = useState(0);
+  const lyricsAvailable =
+    currentLyrics && currentLyrics.length > 0 && currentLyrics[0].length;
+  if (!lyricsAvailable) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height="100%"
+      >
+        <Typography variant="h4">No lyrics available</Typography>
+      </Box>
+    );
+  }
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
+  };
+
+  const handleLyricsLineSelect = (lineIndex: number) => {
+    let keys = Array.from(activeLyrics.keys());
+    let changedKey = keys[lineIndex];
+    let seekTime = changedKey - 2;
+    let line = getLineFromIndex(lineIndex);
+    if (line === undefined) {
+      return;
+    }
+    let lastText = line![line!.length - 1];
+    seekTime -= lastText.duration;
+    console.log("last text:", lastText.text);
+    console.log("seek time:", seekTime);
+    globalRegulator.setCurrentTime(seekTime);
+    reAnimate();
   };
 
   // NOTE: The function below will be called at various unexpected times, since it has multiple dependencies. --GEORGE
@@ -47,7 +77,6 @@ export default function WidgetPanel({
     lineIndex: number,
     importanceValues: number[]
   ) => {
-    // TODO: Handle the updated importance values here
     let changedLine = getLineFromIndex(lineIndex);
     if (!changedLine) {
       console.warn(
@@ -55,10 +84,20 @@ export default function WidgetPanel({
       );
       return;
     }
+    if (importanceValues.length !== changedLine.length) {
+      console.warn(
+        `[handleImpChange] Importance values length (${importanceValues.length}) does not match changed line length (${changedLine.length}) for line ${lineIndex}.`
+      );
+      return; // Or handle the discrepancy as needed
+    }
     changedLine.forEach((animatedText, index) => {
-      animatedText.setImportance(importanceValues[index]);
+      const importanceValue = importanceValues[index];
+      if (typeof importanceValue === "number") {
+        animatedText.setImportance(importanceValue);
+      } else {
+        console.error(`Importance value at index ${index} is not a number.`);
+      }
     });
-    // console.log(`Importance values for line ${lineIndex}:`, importanceValues);
     reAnimate();
   };
 
@@ -176,6 +215,7 @@ export default function WidgetPanel({
         {activeTab === 0 && (
           <ImportanceTab
             lyrics={currentLyrics}
+            onLyricsLineSelect={handleLyricsLineSelect}
             onImportanceChange={handleImportanceChange}
             onCustomizationChange={handleCustomizationChange}
             onAnimationChange={handleAnimationChange}
