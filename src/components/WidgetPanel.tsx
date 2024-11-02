@@ -3,6 +3,7 @@ import { Box, Tab, Tabs, Typography } from "@mui/material";
 import ImportanceTab, { Customization } from "./ImportanceTab"; // Import the new component
 import { activeLyrics, globalRegulator } from "@/helpers/globals";
 import { numberToRgb } from "@/helpers/misc";
+import LyricalInstrumentsTab from "./LyricalInstrumentTab";
 
 interface WidgetPanelProps {
   currentLyrics: string[][];
@@ -110,6 +111,17 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
     });
   };
 
+  const handleLyricalInstrumentApply = (
+    instrument: string,
+    options: {
+      emphasisScale: number;
+      animationSpeed: number;
+      alignment: string;
+    }
+  ) => {};
+
+  const handleLyricalInstrumentReset = () => {};
+
   return (
     <Box display="flex" height="100%">
       {/* Left side with Tabs */}
@@ -120,7 +132,8 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
           onChange={handleTabChange}
           TabIndicatorProps={{ style: { display: "none" } }}
         >
-          <Tab label="Lyric Importance" />
+          <Tab label="Importance Curve" />
+          <Tab label="Lyrical Instruments" />
           <Tab label="Images" />
           <Tab label="Animated Backgrounds" />
         </Tabs>
@@ -146,9 +159,15 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
           />
         )}
         {activeTab === 1 && (
-          <Typography variant="h6">Images Content</Typography>
+          <LyricalInstrumentsTab
+            onApply={handleLyricalInstrumentApply}
+            onReset={handleLyricalInstrumentReset}
+          />
         )}
         {activeTab === 2 && (
+          <Typography variant="h6">Images Content</Typography>
+        )}
+        {activeTab === 3 && (
           <Typography variant="h6">Animated Backgrounds Content</Typography>
         )}
       </Box>

@@ -7,7 +7,7 @@ import {
   globalRegulator,
 } from "./globals";
 import { newLayer } from "@/app/page";
-import { AnimatedText } from "./types";
+import { AnimatedText } from "./classes/AnimatedText";
 
 // Deselect and reselect an object
 export function reselect(selection: FabricObject, canvas: fabric.Canvas) {

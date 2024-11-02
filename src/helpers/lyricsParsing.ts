@@ -6,8 +6,10 @@ import {
   p_keyframes,
   globalRegulator,
 } from "./globals";
-import { addAnimatedText, AnimatedText, LyricsLine } from "./types";
 import * as fabric from "fabric";
+import { addAnimatedText } from "./addAnimatedText";
+import { AnimatedText } from "./classes/AnimatedText";
+import { LyricsLine } from "./classes/LyricsLine";
 
 export function lyricsParse(
   file: File,

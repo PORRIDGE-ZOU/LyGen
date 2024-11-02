@@ -14,7 +14,6 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ColorPickerInput from "./ColorPickerInput";
-// Import the animation presets
 import { animationPresets } from "@/helpers/globals";
 import { rgbToNumber } from "@/helpers/misc";
 import WordCloudGenerator from "./WordCloudGenerator";

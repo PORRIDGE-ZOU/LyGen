@@ -6,7 +6,9 @@ import * as fabric from "fabric";
 import { FabricObject, Canvas } from "fabric";
 import { Box, Container } from "@mui/material";
 import anime from "animejs/lib/anime.es.js";
-import { PKeyframe, LyricsLine, LygenObject } from "../helpers/types";
+import { LyricsLine } from "@/helpers/classes/LyricsLine";
+import { LygenObject } from "@/helpers/classes/LygenObject";
+import { PKeyframe } from "@/helpers/types/index";
 import {
   props,
   p_keyframes,
@@ -116,6 +118,7 @@ const App = () => {
     });
 
     canvas.on("selection:updated", (e) => {
+      // TODO: Update the value in specific Animated Text object. Now, it will shift back once you play the video. -- GEORGE
       let active = canvas.getActiveObject();
       let x = active?.get("left");
       let y = active?.get("top");
@@ -140,11 +143,6 @@ const App = () => {
       } else {
         setFillColor(fill!);
       }
-
-      let text = active?.get("text");
-      if (text) {
-        // console.log("[canvasSetup] UPDATED active text: ", text);
-      }
     });
   }
 
@@ -162,7 +160,6 @@ const App = () => {
     }
     canvas?.renderAll();
     reselect(active!, canvas!);
-    // canvas?.discardActiveObject();
   }
 
   function onColorChange(newcolor: string) {
@@ -345,11 +342,10 @@ export function newLayer(
   duration: number,
   currenttime: number
 ) {
-  // layer_count++;
   var color: string = "#FFFFFF";
 
   // Determine the color based on the object's type and assetType
-  // NO use for
+  // NO use for now
   if (newObject.get("type") == "image") {
     color = newObject.get("assetType") == "video" ? "#106CF6" : "#92F711";
   } else if (newObject.get("type") == "textbox") {
@@ -439,11 +435,7 @@ export function newLayer(
       object: newObject,
       id: newObject.get("id"),
     });
-    // console.log("[newLayer] all p_keyframes: " + p_keyframes);
   }
-
-  // Render the layer
-  // renderLayer(object);
 
   // Set properties for objects that are not audio
   if (!newObject.get("assetType") || newObject.get("assetType") != "audio") {
@@ -477,9 +469,6 @@ export function newLayer(
           // }
         }
       } else {
-        if (!["top", "scaleY", "stroke", "width", "height"].includes(prop)) {
-          // renderProp(prop, object);
-        }
         currentObject.defaults.push({ name: prop, value: newObject.get(prop) });
       }
     });
@@ -492,14 +481,6 @@ export function newLayer(
     currentObject.defaults.push({ name: "volume", value: 1 });
   }
 
-  // Update layer selection and visibility
-  // $(".layer-selected").removeClass("layer-selected");
-  // $(`.layer[data-object='${object.get("id")}']`).addClass("layer-selected");
-  // document.getElementsByClassName("layer-selected")[0].scrollIntoView();
-
-  // console.log("[newLayer] before animate, object left and top: " + object.get('left') + " " + object.get('top'));
-
-  // Initialize animations and save the state
   const foundObject = objects.find((x) => x.id == newObject.id);
   if (foundObject) {
     foundObject.animate = (animatable, options) => {
@@ -507,10 +488,6 @@ export function newLayer(
     };
   }
   animate(false, currenttime, canvas, objects, p_keyframes, duration);
-  // console.log("[newLayer] after animate, object left and top: " + object.get('left') + " " + object.get('top'));
-  // save();
-  // checkFilter();
-  // console.log("[newLayer] layer created, newLayer() ends");
 }
 
 // Create an audio layer
@@ -637,10 +614,3 @@ export function playAudio(
 }
 
 export default App;
-
-/**
- * TODOs:
- * - the last line is not displayed properly.
- * - It's still kinda stuck and laggy. Maybe it's because of the way we're rendering the textboxes?
- * - We should have a timing offset for the words to start earlier than the actual time.
- */

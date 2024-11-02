@@ -1,7 +1,9 @@
 "use strict";
-import { AnimatedText, PKeyframe } from "./types";
+
 import { FabricObject } from "fabric";
-import { LygenObject } from "./types";
+import { PKeyframe } from "./types";
+import { AnimatedText } from "./classes/AnimatedText";
+import { LygenObject } from "./classes/LygenObject";
 
 /**
  * All the possible properties of an object
