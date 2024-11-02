@@ -20,7 +20,7 @@ export function addAnimatedText(
     fontFamily: globalRegulator.defaultFont,
     duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
     easing: "easeInQuad",
-    fill: "#FFFFFF",
+    fill: "#ffffff",
     defaultScaleX: 1,
     defaultScaleY: 1,
   });

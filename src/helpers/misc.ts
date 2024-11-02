@@ -5,6 +5,7 @@ import {
   allObjects,
   p_keyframes,
   globalRegulator,
+  activeLyrics,
 } from "./globals";
 import { newLayer } from "@/app/page";
 import { AnimatedText } from "./classes/AnimatedText";
@@ -221,6 +222,18 @@ export function realignLineOfText(line: AnimatedText[], canvas: fabric.Canvas) {
     nextXPos += widthOfSpace;
   });
   canvas.renderAll();
+}
+
+export function getLineFromIndex(lineIndex: number) {
+  let keys = Array.from(activeLyrics.keys());
+  let changedKey = keys[lineIndex];
+  let changedLine = activeLyrics.get(changedKey);
+  if (!changedLine) {
+    console.warn(
+      `[getLineFromIndex] Line ${lineIndex} not found in the active lyrics map. Returning null.`
+    );
+  }
+  return changedLine;
 }
 
 export function rgbToNumber(r: number, g: number, b: number) {

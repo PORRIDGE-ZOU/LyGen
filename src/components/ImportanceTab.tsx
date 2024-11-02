@@ -11,11 +11,16 @@ import {
   Container,
   Checkbox,
   FormControlLabel,
+  SelectChangeEvent,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ColorPickerInput from "./ColorPickerInput";
-import { animationPresets } from "@/helpers/globals";
-import { rgbToNumber } from "@/helpers/misc";
+import {
+  activeLyrics,
+  animationPresets,
+  globalRegulator,
+} from "@/helpers/globals";
+import { getLineFromIndex, rgbToNumber } from "@/helpers/misc";
 import WordCloudGenerator from "./WordCloudGenerator";
 
 interface ImportanceTabProps {
@@ -89,9 +94,14 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
+  // NOTE: If you adopt the commented line below, this will be called whenever you drag the
+  // seek dot in the timeline. WHY? Moreover, this will set the FIRST line to BLACK! Why? --GEORGE
+  // useEffect(() => {
+  //   onImportanceChange(selectedLineIndex, importanceValues);
+  // }, [importanceValues, onImportanceChange, selectedLineIndex]);
   useEffect(() => {
     onImportanceChange(selectedLineIndex, importanceValues);
-  }, [importanceValues]);
+  }, [importanceValues, selectedLineIndex]);
 
   // Handle dot dragging
   const handleDotDrag = (index: number, newImportance: number) => {
@@ -238,6 +248,19 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     </Container>
   );
 
+  const handleLyricsLineSelect = (e: SelectChangeEvent<number>) => {
+    console.log("Selected line index:", e.target.value);
+    let line = getLineFromIndex(e.target.value as number);
+    if (line === undefined) {
+      return;
+    }
+    let lastText = line[line.length - 1];
+    let seekTime = lastText.textFabricObject?.get("endtime") - 0.05;
+    globalRegulator.setCurrentTime(seekTime);
+
+    setSelectedLineIndex(e.target.value as number);
+  };
+
   return (
     <Box>
       {/* Dropdown Menu for Lyrics */}
@@ -245,7 +268,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
         <InputLabel>Select Lyric Line</InputLabel>
         <Select
           value={selectedLineIndex}
-          onChange={(e) => setSelectedLineIndex(Number(e.target.value))}
+          onChange={(e) => handleLyricsLineSelect(e)}
           label="Select Lyric Line"
         >
           {lyrics.map((line, index) => (

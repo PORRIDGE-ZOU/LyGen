@@ -181,7 +181,7 @@ export function renderText(
     });
   }
   result.set({ animateDuration: props.duration });
-  console.log("setting animateDuration to: ", result.get("animateDuration"));
+
   result.objectCaching = false;
   cv.add(result);
   newLayer(

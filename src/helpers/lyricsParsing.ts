@@ -1,11 +1,5 @@
-import { newLayer } from "@/app/page";
 import { newTextbox } from "./misc";
-import {
-  activeLyrics,
-  allObjects,
-  p_keyframes,
-  globalRegulator,
-} from "./globals";
+import { activeLyrics, globalRegulator } from "./globals";
 import * as fabric from "fabric";
 import { addAnimatedText } from "./addAnimatedText";
 import { AnimatedText } from "./classes/AnimatedText";

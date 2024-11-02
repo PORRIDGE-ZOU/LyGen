@@ -13,7 +13,7 @@ import { playAudio } from "@/app/page";
 import { FabricText } from "fabric";
 
 /** Animate timeline (or seek to specific point in time)
- * IMPROVED BY CHATGPT -- GEORGE
+ * @NOTE This function is NOT related to currenttime. Set it separately.
  * @param play
  * @param currenttime
  * @param canvas
@@ -31,12 +31,17 @@ export async function animate(
   duration: number,
   onTimeChange?: (time: number) => void
 ) {
+  console.log("[animate] play: ", play);
   if (!play) {
+    if (canvas == null) {
+      // NOTE: Now this will print BEFORE Canvas is initialized. I don't know why. -- GEORGE
+      console.log("[animate] Canvas is null");
+    }
     updateObjectVisibility(objects, canvas, p_keyframes, currenttime, duration);
 
     // HANDLE ANIMATED TEXT
-    updateAnimatedTexts(currenttime, canvas, canvas);
-    canvas.renderAll();
+    updateAnimatedTexts(currenttime, canvas);
+    canvas?.renderAll();
   }
   if (play) {
     globalRegulator.resume();
@@ -59,6 +64,7 @@ export async function animate(
       update: () => {
         if (!globalRegulator.paused) {
           currenttime = animation.value;
+          globalRegulator.setCurrentTime(currenttime);
           if (onTimeChange) {
             onTimeChange(currenttime);
           }
@@ -71,7 +77,7 @@ export async function animate(
             currenttime,
             duration
           );
-          updateAnimatedTexts(currenttime, canvas, canvas);
+          updateAnimatedTexts(currenttime, canvas);
           canvas.renderAll();
         } else {
           globalRegulator.setCurrentTime(currenttime);
@@ -89,7 +95,6 @@ export async function animate(
 
 function updateAnimatedTexts(
   currenttime: number,
-  canvas: fabric.Canvas,
   inst: fabric.Canvas,
   offset?: number
 ) {

@@ -234,16 +234,16 @@ export class AnimatedText extends FabricObject {
     newR = clamp(newR);
     newG = clamp(newG);
     newB = clamp(newB);
-    console.log(
-      "[calcColorFromImp] newR: ",
-      newR,
-      "newG: ",
-      newG,
-      "newB: ",
-      newB,
-      "hex: ",
-      rgbToHex(newR, newG, newB)
-    );
+    // console.log(
+    //   "[calcColorFromImp] newR: ",
+    //   newR,
+    //   "newG: ",
+    //   newG,
+    //   "newB: ",
+    //   newB,
+    //   "hex: ",
+    //   rgbToHex(newR, newG, newB)
+    // );
     return rgbToHex(newR, newG, newB);
   }
 
@@ -276,5 +276,7 @@ export class AnimatedText extends FabricObject {
       return;
     }
     realignLineOfText(texts, this.canvas!);
+
+    this.seek(globalRegulator.currentTime, this.canvas!);
   }
 }

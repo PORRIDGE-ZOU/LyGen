@@ -32,16 +32,19 @@ const App = () => {
   // ------------------ STATE VARIABLES ------------------
   const [canvas, setCanvas] = useState<fabric.Canvas>();
   const [videoDuration, setVideoDuration] = useState<number>(10000);
-  // this currentTime is ONLY used for displaying now. This should exist because we want to re-render the UI when the time changes. -- GEORGE
-  const [currentTime, setCurrentTime] = useState<number>(0);
   const [filltext, setFillText] = useState("#ffffff");
   const [fillcolor, setFillColor] = useState("#ffffff");
   const [activeXPos, setActiveXPos] = useState<number>(0);
   const [activeYPos, setActiveYPos] = useState<number>(0);
   const [lyrics, setLyrics] = useState<string>("Test Lyrics\nTest Lyrics2");
   const [lyrics_forWidget, setLyrics_forWidget] = useState<string[][]>([[]]);
+  /** This is only used for rerendering GeneralPanel. */
+  const [currentTime, setCurrentTime] = useState<number>(
+    Math.round(globalRegulator.currentTime)
+  );
 
   // ------------------ Functions ------------------
+  // CANVAS SETUP
   useEffect(() => {
     const canvas = new fabric.Canvas("canvas", {
       height: 540,
@@ -99,6 +102,21 @@ const App = () => {
       console.log("[App] canvas cleaning up");
       canvas.dispose();
     };
+  }, []);
+
+  // CURRENT TIME Hooked to the globalRegulator
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const roundedTime = Math.round(globalRegulator.currentTime);
+      setCurrentTime((prevTime) => {
+        if (prevTime !== roundedTime) {
+          return roundedTime;
+        }
+        return prevTime;
+      });
+    }, 100); // Check every 100ms
+
+    return () => clearInterval(interval);
   }, []);
 
   function canvasSetup(canvas: fabric.Canvas) {
@@ -248,7 +266,6 @@ const App = () => {
       return;
     }
     globalRegulator.setCurrentTime(time);
-    setCurrentTime(time);
     animate(false, time, canvas!, allObjects, p_keyframes, videoDuration);
   };
 
@@ -303,12 +320,7 @@ const App = () => {
                 canvas!,
                 allObjects,
                 p_keyframes,
-                videoDuration,
-                (time) => {
-                  // clamp time to int
-                  time = Math.floor(time);
-                  setCurrentTime(time);
-                }
+                videoDuration
               );
             }}
             onPauseClick={() => {
@@ -323,7 +335,19 @@ const App = () => {
           ></GeneralPanel>
         </Box>
         <Box whiteSpace={"pre-wrap"} width="70%" height="100%">
-          <WidgetPanel currentLyrics={lyrics_forWidget}></WidgetPanel>
+          <WidgetPanel
+            currentLyrics={lyrics_forWidget}
+            reAnimate={() => {
+              animate(
+                false,
+                globalRegulator.currentTime,
+                canvas!,
+                allObjects,
+                p_keyframes,
+                videoDuration
+              );
+            }}
+          ></WidgetPanel>
         </Box>
       </Box>
     </Container>

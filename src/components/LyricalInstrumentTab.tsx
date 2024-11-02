@@ -125,9 +125,9 @@ export default function LyricalInstrumentsTab({
       )}
 
       {/* Preview Toggle */}
-      <Button variant="outlined" onClick={() => console.log("Preview toggled")}>
+      {/* <Button variant="outlined" onClick={() => console.log("Preview toggled")}>
         Toggle Preview
-      </Button>
+      </Button> */}
 
       {/* Apply and Reset Buttons */}
       <Box display="flex" justifyContent="space-between" marginTop={2}>

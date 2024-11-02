@@ -1,29 +1,54 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
 import ImportanceTab, { Customization } from "./ImportanceTab"; // Import the new component
 import { activeLyrics, globalRegulator } from "@/helpers/globals";
-import { numberToRgb } from "@/helpers/misc";
+import { getLineFromIndex, numberToRgb } from "@/helpers/misc";
 import LyricalInstrumentsTab from "./LyricalInstrumentTab";
 
 interface WidgetPanelProps {
   currentLyrics: string[][];
+  reAnimate: () => void;
 }
 
-export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
+export default function WidgetPanel({
+  currentLyrics,
+  reAnimate,
+}: WidgetPanelProps) {
   const [activeTab, setActiveTab] = useState(0);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
+  // NOTE: The function below will be called at various unexpected times, since it has multiple dependencies. --GEORGE
+  // const handleImportanceChange = useCallback(
+  //   (lineIndex: number, importanceValues: number[]) => {
+  //     // TODO: Handle the updated importance values here
+  //     let keys = Array.from(activeLyrics.keys());
+  //     let changedKey = keys[lineIndex];
+  //     let changedLine = activeLyrics.get(changedKey);
+  //     if (!changedLine) {
+  //       console.warn(
+  //         `[handleImpChange] Line ${lineIndex} not found in the active lyrics map.`
+  //       );
+  //       return;
+  //     }
+  //     changedLine.forEach((animatedText, index) => {
+  //       animatedText.setImportance(importanceValues[index]);
+  //     });
+
+  //     setTimeout(() => {
+  //       reAnimate();
+  //     }, 0);
+  //   },
+  //   [reAnimate] // Add any variables from outside the function here
+  // );
   const handleImportanceChange = (
     lineIndex: number,
     importanceValues: number[]
   ) => {
     // TODO: Handle the updated importance values here
-    let keys = Array.from(activeLyrics.keys());
-    let changedKey = keys[lineIndex];
-    let changedLine = activeLyrics.get(changedKey);
+    let changedLine = getLineFromIndex(lineIndex);
     if (!changedLine) {
       console.warn(
         `[handleImpChange] Line ${lineIndex} not found in the active lyrics map.`
@@ -33,7 +58,8 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
     changedLine.forEach((animatedText, index) => {
       animatedText.setImportance(importanceValues[index]);
     });
-    console.log(`Importance values for line ${lineIndex}:`, importanceValues);
+    // console.log(`Importance values for line ${lineIndex}:`, importanceValues);
+    reAnimate();
   };
 
   const handleCustomizationChange = (customizations: Customization[]) => {
@@ -57,12 +83,12 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
         animatedText.refresh();
       });
     });
+
+    reAnimate();
   };
 
   const handleAnimationChange = (lineIndex: number, animation: string) => {
-    let keys = Array.from(activeLyrics.keys());
-    let changedKey = keys[lineIndex];
-    let changedLine = activeLyrics.get(changedKey);
+    let changedLine = getLineFromIndex(lineIndex);
     if (!changedLine) {
       console.warn(
         `[handleAnimationChange] Line ${lineIndex} not found in the active lyrics map.`
@@ -90,9 +116,7 @@ export default function WidgetPanel({ currentLyrics }: WidgetPanelProps) {
       rotate: number;
     }[]
   ) => {
-    let keys = Array.from(activeLyrics.keys());
-    let changedKey = keys[lineIndex];
-    let changedLine = activeLyrics.get(changedKey);
+    let changedLine = getLineFromIndex(lineIndex);
     if (!changedLine) {
       console.warn(
         `[handleWordCloudChange] Line ${lineIndex} not found in the active lyrics map.`
