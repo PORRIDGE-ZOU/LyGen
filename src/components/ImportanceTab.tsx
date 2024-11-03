@@ -238,29 +238,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
           ))}
         </svg>
       </Box>
-
-      {/* Customizations */}
-      {/* {renderCustomizations()} */}
-
-      {/* Word Cloud */}
-      {/* <FormControlLabel
-        control={
-          <Checkbox
-            checked={useWordCloud}
-            onChange={(e) => setUseWordCloud(e.target.checked)}
-          />
-        }
-        label="I want to use Wordcloud for this line"
-      />
-      <div>
-        <WordCloudGenerator
-          words={wordCloudWords}
-          importanceValues={importanceValues}
-          width={960}
-          height={540}
-          onLayoutComplete={handleLayoutComplete}
-        />
-      </div> */}
     </Box>
   );
 

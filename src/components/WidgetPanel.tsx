@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
-import ImportanceTab, { Customization } from "./ImportanceTab"; // Import the new component
-import { AllLyrics, globalRegulator } from "@/helpers/globals";
-import { getLineFromIndex, numberToRgb } from "@/helpers/misc";
+import ImportanceTab from "./ImportanceTab"; // Import the new component
+import { globalRegulator } from "@/helpers/globals";
+import { getLineFromIndex } from "@/helpers/misc";
 import LyricalInstrumentsTab, {
   InstrumentSettings,
 } from "./LyricalInstrumentTab";
@@ -151,6 +151,11 @@ export default function WidgetPanel({
     selectedLines.forEach((lineIndex) => {
       const line = getLineFromIndex(lineIndex);
       if (line) {
+        // Apply the selected animation if it exists
+        if (settings.selectedAnimation !== undefined) {
+          handleAnimationChange(lineIndex, settings.selectedAnimation);
+        }
+
         line.forEach((animatedText) => {
           // Apply the instrument logic based on the selected instrument
           if (
@@ -220,6 +225,25 @@ export default function WidgetPanel({
     });
 
     // reAnimate();
+  };
+
+  const handleAnimationChange = (lineIndex: number, animation: string) => {
+    let changedLine = getLineFromIndex(lineIndex);
+    if (!changedLine) {
+      console.warn(
+        `[handleAnimationChange] Line ${lineIndex} not found in the active lyrics map.`
+      );
+      return;
+    }
+    changedLine.forEach((animatedText) => {
+      animatedText.props.preset = animation;
+    });
+    console.log(
+      "[handleAnimationChange] changed index",
+      lineIndex,
+      " to:",
+      animation
+    );
   };
 
   return (
@@ -301,23 +325,4 @@ export default function WidgetPanel({
 //   });
 
 //   reAnimate();
-// };
-
-// const handleAnimationChange = (lineIndex: number, animation: string) => {
-//   let changedLine = getLineFromIndex(lineIndex);
-//   if (!changedLine) {
-//     console.warn(
-//       `[handleAnimationChange] Line ${lineIndex} not found in the active lyrics map.`
-//     );
-//     return;
-//   }
-//   changedLine.forEach((animatedText) => {
-//     animatedText.props.preset = animation;
-//   });
-//   console.log(
-//     "[handleAnimationChange] changed index",
-//     lineIndex,
-//     " to:",
-//     animation
-//   );
 // };

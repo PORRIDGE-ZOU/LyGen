@@ -11,8 +11,16 @@ import {
   ListItemButton,
   ListItemText,
   FormGroup,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
 } from "@mui/material";
-import { globalRegulator, InstrumentList } from "@/helpers/globals";
+import {
+  globalRegulator,
+  InstrumentList,
+  AnimationPresets,
+} from "@/helpers/globals";
 
 interface LyricalInstrumentsTabProps {
   onApply: (
@@ -29,6 +37,7 @@ export interface InstrumentSettings {
   boldThreshold?: number;
   sizeScaleFactor?: number;
   animationSpeedFactor?: number;
+  selectedAnimation?: string;
 }
 
 export default function LyricalInstrumentsTab({
@@ -43,7 +52,9 @@ export default function LyricalInstrumentsTab({
     boldThreshold: globalRegulator.impBoldThreshold,
     sizeScaleFactor: globalRegulator.impEnlargeFactor,
     animationSpeedFactor: globalRegulator.impAnimSlowFactor,
+    selectedAnimation: AnimationPresets[0], // New state for selected animation
   });
+  const [selectedAnimation, setSelectedAnimation] = useState<string>("");
 
   // Handle instrument selection from the left menu
   const handleInstrumentSelect = (instrumentValue: string) => {
@@ -71,6 +82,13 @@ export default function LyricalInstrumentsTab({
         [setting]: value as number,
       });
     };
+
+  const handleAnimationSelect = (event: { target: { value: string } }) => {
+    setSettings({
+      ...settings,
+      selectedAnimation: event.target.value as string,
+    });
+  };
 
   // Apply the selected instrument and settings to the selected lines
   const handleApply = () => {
@@ -185,6 +203,22 @@ export default function LyricalInstrumentsTab({
                 />
               </Box>
             )}
+
+            {/* Select Animation Dropdown */}
+            <FormControl fullWidth variant="outlined" margin="normal">
+              <InputLabel>Select Animation for this instrument</InputLabel>
+              <Select
+                value={settings.selectedAnimation || ""}
+                onChange={handleAnimationSelect}
+                label="Select Animation"
+              >
+                {AnimationPresets.map((animation) => (
+                  <MenuItem key={animation} value={animation}>
+                    {animation}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             {/* Line Selection */}
             <Typography variant="h6" marginTop={4}>
