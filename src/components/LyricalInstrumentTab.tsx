@@ -12,7 +12,7 @@ import {
   ListItemText,
   FormGroup,
 } from "@mui/material";
-import { InstrumentList } from "@/helpers/globals";
+import { globalRegulator, InstrumentList } from "@/helpers/globals";
 
 interface LyricalInstrumentsTabProps {
   onApply: (
@@ -40,9 +40,9 @@ export default function LyricalInstrumentsTab({
   const [selectedInstrument, setSelectedInstrument] = useState<string>("");
   const [selectedLines, setSelectedLines] = useState<number[]>([]);
   const [settings, setSettings] = useState<InstrumentSettings>({
-    boldThreshold: 0.5,
-    sizeScaleFactor: 1,
-    animationSpeedFactor: 1,
+    boldThreshold: globalRegulator.impBoldThreshold,
+    sizeScaleFactor: globalRegulator.impEnlargeFactor,
+    animationSpeedFactor: globalRegulator.impAnimSlowFactor,
   });
 
   // Handle instrument selection from the left menu
@@ -111,7 +111,7 @@ export default function LyricalInstrumentsTab({
       <Box width="70%" padding="16px">
         {selectedInstrument ? (
           <>
-            <Typography variant="h6">
+            <Typography variant="h5">
               Configure{" "}
               {
                 InstrumentList.find((inst) => inst.value === selectedInstrument)
@@ -122,9 +122,17 @@ export default function LyricalInstrumentsTab({
             {/* Dynamic Controls Based on Selected Instrument */}
             {selectedInstrument === "boldThreshold" && (
               <Box marginTop={2}>
-                <Typography>Threshold Value</Typography>
+                <Typography variant="h6">
+                  Bolden the word if its importance is larger than the
+                  threshold.
+                </Typography>
+                <Typography>
+                  Threshold Value: {settings.boldThreshold}
+                </Typography>
                 <Slider
-                  value={settings.boldThreshold || 0.5}
+                  value={
+                    settings.boldThreshold || globalRegulator.impBoldThreshold
+                  }
                   onChange={handleSliderChange("boldThreshold")}
                   min={0}
                   max={1}
@@ -135,9 +143,18 @@ export default function LyricalInstrumentsTab({
 
             {selectedInstrument === "sizeScaling" && (
               <Box marginTop={2}>
-                <Typography>Scale Factor</Typography>
+                <Typography variant="h6">
+                  Enlarge the word based on its importance, such that if the
+                  importance is 1, the word will be enlarged by 100% * scale
+                  factor.
+                </Typography>
+                <Typography>
+                  Scale Factor: {settings.sizeScaleFactor}
+                </Typography>
                 <Slider
-                  value={settings.sizeScaleFactor || 1}
+                  value={
+                    settings.sizeScaleFactor || globalRegulator.impEnlargeFactor
+                  }
                   onChange={handleSliderChange("sizeScaleFactor")}
                   min={1}
                   max={3}
@@ -148,13 +165,23 @@ export default function LyricalInstrumentsTab({
 
             {selectedInstrument === "animationSpeedScaling" && (
               <Box marginTop={2}>
-                <Typography>Speed Factor</Typography>
+                <Typography variant="h6">
+                  Slow down the animation speed based on the importance of the
+                  word, such that if the importance is 1, the word will be
+                  animated at 100% * speed factor.
+                </Typography>
+                <Typography>
+                  Speed Factor: {settings.animationSpeedFactor}
+                </Typography>
                 <Slider
-                  value={settings.animationSpeedFactor || 1}
+                  value={
+                    settings.animationSpeedFactor ||
+                    globalRegulator.impAnimSlowFactor
+                  }
                   onChange={handleSliderChange("animationSpeedFactor")}
-                  min={0.5}
+                  min={0.1}
                   max={2}
-                  step={0.1}
+                  step={0.01}
                 />
               </Box>
             )}

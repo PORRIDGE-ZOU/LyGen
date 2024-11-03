@@ -7,6 +7,7 @@ import {
   InputLabel,
   SelectChangeEvent,
 } from "@mui/material";
+import { InstrumentList } from "@/helpers/globals";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ColorPickerInput from "./ColorPickerInput";
 import { AnimationPresets } from "@/helpers/globals";
@@ -173,10 +174,11 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
           onChange={handleInstrumentSelect}
           label="Select Lyrical Instrument"
         >
-          <MenuItem value="boldThreshold">Bold on Threshold</MenuItem>
-          <MenuItem value="sizeScaling">Size Scaling</MenuItem>
-          <MenuItem value="animationSpeed">Animation Speed Scaling</MenuItem>
-          {/* Add more instruments if needed */}
+          {InstrumentList.map((instrument) => (
+            <MenuItem key={instrument.value} value={instrument.value}>
+              {instrument.name}
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
 
