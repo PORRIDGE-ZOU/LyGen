@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ColorPickerInput from "./ColorPickerInput";
-import { animationPresets } from "@/helpers/globals";
+import { AnimationPresets } from "@/helpers/globals";
 import { rgbToNumber } from "@/helpers/misc";
 import WordCloudGenerator from "./WordCloudGenerator";
 
@@ -18,7 +18,8 @@ interface ImportanceTabProps {
   onLyricsLineSelect: (lineIndex: number) => void;
   onImportanceChange: (lineIndex: number, importanceValues: number[]) => void;
   onInstrumentChange: (lineIndex: number, instrument: string) => void;
-  lineInstruments: { [key: number]: string }; // New prop
+  lineInstruments: { [key: number]: string };
+  lineImportance: { [key: number]: number[] };
 }
 
 export interface Customization {
@@ -38,7 +39,9 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   onImportanceChange,
   onInstrumentChange,
   lineInstruments,
+  lineImportance,
 }) => {
+  const isUpdatingFromParent = useRef(false);
   const [selectedLineIndex, setSelectedLineIndex] = useState(
     lyrics.length > 0 ? 0 : -1
   );
@@ -46,6 +49,12 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedInstrument, setSelectedInstrument] = useState("");
+  // Calculate dimensions
+  const graphHeight = 200;
+  const wordSpacing = 100; // Adjust as needed
+  const totalWidth = (lyrics[selectedLineIndex]?.length || 0) * wordSpacing;
+  // Left offset for y-axis labels
+  const xOffset = 30;
 
   useEffect(() => {
     const instrument = lineInstruments[selectedLineIndex] || "";
@@ -53,14 +62,49 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   }, [selectedLineIndex, lineInstruments]);
 
   // Importance Curve ----------------
-  // Initialize importance values and wordcloud words when selected line changes
-  useEffect(() => {
-    if (lyrics[selectedLineIndex]) {
-      const wordsInLine = lyrics[selectedLineIndex].length;
-      setImportanceValues(Array(wordsInLine).fill(0.5)); // Default importance 0.5
-      // setWordCloudWords(lyrics[selectedLineIndex]);
+  function arraysEqual(a: number[], b: number[]) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; ++i) {
+      if (a[i] !== b[i]) return false;
     }
-  }, [selectedLineIndex, lyrics]);
+    return true;
+  }
+  useEffect(() => {
+    const importance = lineImportance[selectedLineIndex];
+    console.log(
+      "Selected line index:",
+      selectedLineIndex,
+      lineImportance,
+      importance
+    );
+    if (importance) {
+      if (!arraysEqual(importanceValues, importance)) {
+        isUpdatingFromParent.current = true;
+        setImportanceValues(importance);
+      }
+    } else if (lyrics[selectedLineIndex]) {
+      const wordsInLine = lyrics[selectedLineIndex].length;
+      const defaultImportance = Array(wordsInLine).fill(0.5);
+      if (!arraysEqual(importanceValues, defaultImportance)) {
+        isUpdatingFromParent.current = true;
+        setImportanceValues(defaultImportance);
+      }
+    } else {
+      setImportanceValues([]);
+    }
+  }, [selectedLineIndex, lineImportance]);
+
+  useEffect(() => {
+    if (isUpdatingFromParent.current) {
+      isUpdatingFromParent.current = false;
+    } else {
+      if (importanceValues.length > 0) {
+        onImportanceChange(selectedLineIndex, importanceValues);
+      }
+    }
+  }, [importanceValues, selectedLineIndex]);
 
   // Update container width on mount and resize
   useEffect(() => {
@@ -74,12 +118,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
-  useEffect(() => {
-    if (importanceValues.length > 0) {
-      onImportanceChange(selectedLineIndex, importanceValues);
-    }
-  }, [importanceValues, selectedLineIndex]);
-
   // Handle dot dragging
   const handleDotDrag = (index: number, newImportance: number) => {
     const clampedImportance = Math.max(0, Math.min(1, newImportance));
@@ -89,14 +127,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
       return updatedValues; // Return the updated values to apply them
     });
   };
-
-  // Calculate dimensions
-  const graphHeight = 200;
-  const wordSpacing = 100; // Adjust as needed
-  const totalWidth = (lyrics[selectedLineIndex]?.length || 0) * wordSpacing;
-
-  // Left offset for y-axis labels
-  const xOffset = 30;
 
   /**
    * PREVENT RENDERING WHEN LYRICS ARE LOADING
@@ -149,26 +179,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
           {/* Add more instruments if needed */}
         </Select>
       </FormControl>
-
-      {/* Dropdown Menu for Animation */}
-      {/* <FormControl fullWidth variant="outlined" margin="normal">
-        <InputLabel></InputLabel>
-        <Select
-          value={lineAnimations[selectedLineIndex] || ""}
-          onChange={(e) => handleAnimationChange(e.target.value as string)}
-          label="Select Animation"
-          displayEmpty
-        >
-          <MenuItem value="" disabled>
-            Select an animation
-          </MenuItem>
-          {animationPresets.map((animation) => (
-            <MenuItem key={animation} value={animation}>
-              {animation}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl> */}
 
       {/* Curve Graph */}
       <Box

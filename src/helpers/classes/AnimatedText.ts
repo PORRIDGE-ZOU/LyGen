@@ -1,9 +1,9 @@
 import { animateText, animate } from "../animation";
 import {
   globalRegulator,
-  allObjects,
-  p_keyframes,
-  activeLyrics,
+  AllObjects,
+  P_Keyframes,
+  AllLyrics,
 } from "../globals";
 import { deleteObject, hexToRgb, realignLineOfText, rgbToHex } from "../misc";
 import * as fabric from "fabric";
@@ -38,6 +38,7 @@ export class AnimatedText extends FabricObject {
     }
     this._importance = Math.max(0, Math.min(1, value));
   }
+  instrument: string = "";
 
   constructor(
     text: string,
@@ -76,8 +77,8 @@ export class AnimatedText extends FabricObject {
       startTime,
       endTime,
       this.duration,
-      this.props.defaultScaleX,
-      this.props.defaultScaleY
+      this.props.scaleX,
+      this.props.scaleY
     );
     this.id = textFabricObject.id;
     this.textFabricObject = textFabricObject;
@@ -155,8 +156,8 @@ export class AnimatedText extends FabricObject {
       startTime,
       endTime,
       this.duration,
-      this.props.defaultScaleX,
-      this.props.defaultScaleY
+      this.props.scaleX,
+      this.props.scaleY
     );
     this.id = obj2.id;
     this.textFabricObject = obj2;
@@ -175,39 +176,46 @@ export class AnimatedText extends FabricObject {
       this.id,
       this.duration
     );
-    animate(false, globalRegulator.currentTime, cv, allObjects, p_keyframes, 0);
+    animate(false, globalRegulator.currentTime, cv, AllObjects, P_Keyframes, 0);
   }
 
-  setImportance(importance: number) {
+  /** Apply Importance, THEN REFRESH. */
+  applyImportance(importance: number) {
     this.importance = importance;
+    this.refresh();
+    // // update duration
+    // this.duration = this.calcDurationFromImportance();
+    // this.textFabricObject?.set({
+    //   animateDuration: this.duration,
+    // });
 
-    // update duration
-    this.duration = this.calcDurationFromImportance();
-    this.textFabricObject?.set({
-      animateDuration: this.duration,
-    });
+    // // update scale
+    // let scaleFactor = globalRegulator.impEnlargeFactor;
+    // // lerp from 1 to 1 * scaleFactor
+    // let lerpscale = LerpImportance(1, scaleFactor, importance);
+    // this.props.scaleX = lerpscale;
+    // this.props.scaleY = lerpscale;
 
-    // update scale
-    let scaleFactor = globalRegulator.impEnlargeFactor;
-    // lerp from 1 to 1 * scaleFactor
-    let lerpscale = LerpImportance(1, scaleFactor, importance);
-    this.props.defaultScaleX = lerpscale;
-    this.props.defaultScaleY = lerpscale;
+    // // update color
+    // let newColor = this.calcColorFromImportance();
+    // this.props.fill = newColor;
+    // this.textFabricObject?.set({
+    //   fill: newColor,
+    // });
 
-    // update color
-    let newColor = this.calcColorFromImportance();
-    this.props.fill = newColor;
-    this.textFabricObject?.set({
-      fill: newColor,
-    });
+    // let endtime = this.textFabricObject?.get("endtime");
+    // let texts = AllLyrics.get(endtime);
+    // if (!texts) {
+    //   console.log("Texts not found in activeLyrics map.");
+    //   return;
+    // }
+    // realignLineOfText(texts, this.canvas!);
+  }
 
-    let endtime = this.textFabricObject?.get("endtime");
-    let texts = activeLyrics.get(endtime);
-    if (!texts) {
-      console.log("Texts not found in activeLyrics map.");
-      return;
-    }
-    realignLineOfText(texts, this.canvas!);
+  /** Set Instrument, THEN REFRESH. */
+  applyInstrument(instrument: string) {
+    this.instrument = instrument;
+    this.refresh();
   }
 
   calcDurationFromImportance() {
@@ -243,16 +251,6 @@ export class AnimatedText extends FabricObject {
     newR = clamp(newR);
     newG = clamp(newG);
     newB = clamp(newB);
-    // console.log(
-    //   "[calcColorFromImp] newR: ",
-    //   newR,
-    //   "newG: ",
-    //   newG,
-    //   "newB: ",
-    //   newB,
-    //   "hex: ",
-    //   rgbToHex(newR, newG, newB)
-    // );
     console.log(
       `Calculating color with currentFill: ${currentFill}, importance: ${this.importance}`
     );
@@ -263,27 +261,38 @@ export class AnimatedText extends FabricObject {
   }
 
   refresh() {
-    // refresh scale
-    let scaleFactor = globalRegulator.impEnlargeFactor;
-    let lerpscale = LerpImportance(1, scaleFactor, this.importance);
-    this.props.defaultScaleX = lerpscale;
-    this.props.defaultScaleY = lerpscale;
+    let scaleFactor = 1;
+    let duration = this.props.duration;
+    let newColor = this.props.fill;
+    let shouldBold = false;
+    if (this.instrument === "") {
+    } else if (this.instrument === "sizeScaling") {
+      scaleFactor = globalRegulator.impEnlargeFactor;
+      scaleFactor = LerpImportance(1, scaleFactor, this.importance);
+    } else if (this.instrument === "boldThreshold") {
+      if (this.importance >= globalRegulator.impBoldThreshold) {
+        shouldBold = true;
+      }
+    } else if (this.instrument === "animationSpeedScaling") {
+      duration = this.calcDurationFromImportance();
+    }
 
-    // refresh duration
-    this.duration = this.calcDurationFromImportance();
+    // No matter what, reset all the properties
+    this.props.scaleX = scaleFactor;
+    this.props.scaleY = scaleFactor;
+    this.duration = duration;
     this.textFabricObject?.set({
-      animateDuration: this.duration,
+      animateDuration: duration,
     });
-
-    // refresh color
-    let newColor = this.calcColorFromImportance();
+    this.textFabricObject!.fontWeight = shouldBold ? "bold" : "normal";
     this.props.fill = newColor;
     this.textFabricObject?.set({
       fill: newColor,
     });
 
+    // realign and seek to rerender
     let endtime = this.textFabricObject?.get("endtime");
-    let texts = activeLyrics.get(endtime);
+    let texts = AllLyrics.get(endtime);
     if (!texts) {
       console.log(
         "[AnimatedText::refresh()] Texts not found in activeLyrics map."
@@ -291,7 +300,6 @@ export class AnimatedText extends FabricObject {
       return;
     }
     realignLineOfText(texts, this.canvas!);
-
     this.seek(globalRegulator.currentTime, this.canvas!);
   }
 }

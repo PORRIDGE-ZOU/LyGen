@@ -1,11 +1,11 @@
 import { FabricObject } from "fabric";
 import * as fabric from "fabric";
 import {
-  allAnimatedTexts,
-  allObjects,
-  p_keyframes,
+  AllAnimatedTexts,
+  AllObjects,
+  P_Keyframes,
   globalRegulator,
-  activeLyrics,
+  AllLyrics,
 } from "./globals";
 import { newLayer } from "@/app/page";
 import { AnimatedText } from "./classes/AnimatedText";
@@ -50,7 +50,7 @@ export function deleteObject(
   canvas: fabric.Canvas
 ) {
   if (object.get("assetType") == "animatedText" && def) {
-    var animatedtext = $.grep(allAnimatedTexts, function (a) {
+    var animatedtext = $.grep(AllAnimatedTexts, function (a) {
       return a.id != object.id;
     });
   }
@@ -162,7 +162,7 @@ export const newTextbox = (
   // setactiveobject to the end of function. --GEORGE
   // THIS IS NOT FIXING THE ISSUE. DAMN. --GEORGE
   // add this text element as a layer (a layer is a row in the timeline)
-  newLayer(newtext, allObjects, p_keyframes, canvas!, 5000, 0);
+  newLayer(newtext, AllObjects, P_Keyframes, canvas!, 5000, 0);
   // canvas.setActiveObject(newtext);
   // canvas?.bringToFront(newtext);
   canvas?.bringObjectToFront(newtext);
@@ -203,7 +203,7 @@ export function realignLineOfText(line: AnimatedText[], canvas: fabric.Canvas) {
   let textWidths: number[] = [];
   line.forEach((text, index) => {
     let originalTextWidth = ctx.measureText(text.text).width;
-    let actualWidth = originalTextWidth * text.props.defaultScaleX!;
+    let actualWidth = originalTextWidth * text.props.scaleX!;
     textWidths.push(actualWidth);
     if (index != line.length - 1) {
       actualWidth += widthOfSpace;
@@ -224,9 +224,9 @@ export function realignLineOfText(line: AnimatedText[], canvas: fabric.Canvas) {
 }
 
 export function getLineFromIndex(lineIndex: number) {
-  let keys = Array.from(activeLyrics.keys());
+  let keys = Array.from(AllLyrics.keys());
   let changedKey = keys[lineIndex];
-  let changedLine = activeLyrics.get(changedKey);
+  let changedLine = AllLyrics.get(changedKey);
   if (!changedLine) {
     console.warn(
       `[getLineFromIndex] Line ${lineIndex} not found in the active lyrics map. Returning null.`
@@ -246,8 +246,8 @@ export function setPropsToAnimText(
 ) {
   animText.props.left = text.left!;
   animText.props.top = text.top!;
-  animText.props.defaultScaleX = text.scaleX!;
-  animText.props.defaultScaleY = text.scaleY!;
+  animText.props.scaleX = text.scaleX!;
+  animText.props.scaleY = text.scaleY!;
 }
 
 export function rgbToNumber(r: number, g: number, b: number) {

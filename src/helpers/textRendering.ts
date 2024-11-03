@@ -1,6 +1,6 @@
 import { newLayer } from "@/app/page";
 import { AnimationProps } from "./types/index";
-import { allObjects, globalRegulator, p_keyframes } from "./globals";
+import { AllObjects, globalRegulator, P_Keyframes } from "./globals";
 import * as fabric from "fabric";
 import { FabricText } from "fabric";
 
@@ -102,8 +102,8 @@ export function renderText_LetterWise(
   cv.renderAll();
   newLayer(
     result,
-    allObjects,
-    p_keyframes,
+    AllObjects,
+    P_Keyframes,
     cv,
     props.duration,
     globalRegulator.currentTime
@@ -182,8 +182,8 @@ export function renderText(
   cv.add(result);
   newLayer(
     result,
-    allObjects,
-    p_keyframes,
+    AllObjects,
+    P_Keyframes,
     cv,
     props.duration,
     globalRegulator.currentTime

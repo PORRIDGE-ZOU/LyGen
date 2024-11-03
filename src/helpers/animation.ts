@@ -1,10 +1,10 @@
 import anime from "animejs";
 import {
-  props,
-  allAnimatedTexts,
+  PropList,
+  AllAnimatedTexts,
   globalRegulator,
-  p_keyframes,
-  activeLyrics,
+  P_Keyframes,
+  AllLyrics,
 } from "./globals";
 import { AnimationProps, PKeyframe } from "./types/index";
 import { LygenObject } from "./classes/LygenObject";
@@ -98,7 +98,7 @@ function updateAnimatedTexts(
   canvas: fabric.Canvas,
   offset?: number
 ) {
-  if (allAnimatedTexts.length > 0) {
+  if (AllAnimatedTexts.length > 0) {
     if (offset) {
       currenttime -= offset;
     }
@@ -109,8 +109,8 @@ function updateAnimatedTexts(
     // active?.forEach((text) => {
     //   text.seek(currenttime, canvas);
     // });
-    let values = activeLyrics.values();
-    for (let i = 0; i < activeLyrics.size; i++) {
+    let values = AllLyrics.values();
+    for (let i = 0; i < AllLyrics.size; i++) {
       let active = values.next().value;
       active?.forEach((text) => {
         text.seek(currenttime, canvas);
@@ -154,7 +154,7 @@ function updateObjectVisibility(
       }
       object2?.set("visible", isVisible);
       if (isVisible) {
-        props.forEach((prop) =>
+        PropList.forEach((prop) =>
           checkAnyKeyframe(object.id, prop, inst, objects)
         );
       }
@@ -276,7 +276,7 @@ export function animateText_LetterWise(
   animationDuration?: number
 ) {
   // this should be the actual starting time of this animated text
-  var starttime = p_keyframes.find((x) => x.id == id)?.start || 0;
+  var starttime = P_Keyframes.find((x) => x.id == id)?.start || 0;
   // this should be the actual ending time of this animated text
   // let endtime = p_keyframes.find((x) => x.id == id)?.end || 0;
   // currentTime -= starttime;
@@ -292,12 +292,8 @@ export function animateText_LetterWise(
     let item = group.item(index) as fabric.FabricText;
     let left = item.left!;
     let top = item.top!;
-    let scaleX = props.defaultScaleX
-      ? props.defaultScaleX
-      : item.defaultScaleX!;
-    let scaleY = props.defaultScaleY
-      ? props.defaultScaleY
-      : item.defaultScaleY!;
+    let scaleX = props.scaleX ? props.scaleX : item.defaultScaleX!;
+    let scaleY = props.scaleY ? props.scaleY : item.defaultScaleY!;
     var duration = animationDuration
       ? animationDuration
       : props.duration / length;
@@ -399,8 +395,8 @@ export function animateText(
   let item = text;
   let left = text.left!;
   let top = text.top!;
-  let scaleX = props.defaultScaleX ? props.defaultScaleX : item.defaultScaleX!;
-  let scaleY = props.defaultScaleY ? props.defaultScaleY : item.defaultScaleY!;
+  let scaleX = props.scaleX ? props.scaleX : item.defaultScaleX!;
+  let scaleY = props.scaleY ? props.scaleY : item.defaultScaleY!;
   var duration = animationDuration ? animationDuration : props.duration;
   let relativeTime = currentTime - (starttime - duration);
   var animation = {

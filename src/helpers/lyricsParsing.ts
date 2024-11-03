@@ -1,5 +1,5 @@
 import { newTextbox } from "./misc";
-import { activeLyrics, globalRegulator } from "./globals";
+import { AllLyrics, globalRegulator } from "./globals";
 import * as fabric from "fabric";
 import { addAnimatedText } from "./addAnimatedText";
 import { AnimatedText } from "./classes/AnimatedText";
@@ -305,7 +305,7 @@ export function enhancedLyricsParseWithString(
   // NOTE: populate the activeLyrics map in a SORTED way. Hence, later when we seek the active lyrics, we can do a binary search without sorting. -- GEORGE
   mapEntries.sort((a, b) => a[0] - b[0]);
   for (let [key, value] of mapEntries) {
-    activeLyrics.set(key, value);
+    AllLyrics.set(key, value);
   }
 
   canvas.renderAll();
@@ -315,9 +315,9 @@ export function enhancedLyricsParseWithString(
 export function findCurrentAndNextLyrics(time: number) {
   // NOTE: No need to sort, as the activeLyrics map is already sorted when we populate it -- GEORGE
   // let keys = Array.from(activeLyrics.keys()).sort((a, b) => a - b); // Sorting if not already sorted
-  let keys = Array.from(activeLyrics.keys());
+  let keys = Array.from(AllLyrics.keys());
   for (let key of keys) {
-    let texts = activeLyrics.get(key);
+    let texts = AllLyrics.get(key);
     let finaltext = texts![texts!.length - 1];
     key -= finaltext!.animateDuration!;
   }
@@ -346,7 +346,7 @@ export function findCurrentAndNextLyrics(time: number) {
   }
   let closestKey = findClosestGreaterOrEqual(keys, time);
   if (closestKey) {
-    let result = activeLyrics.get(closestKey);
+    let result = AllLyrics.get(closestKey);
     let nextkey: number | null = null;
     let previouskey: number | null = null;
     for (let key of keys) {
@@ -360,8 +360,8 @@ export function findCurrentAndNextLyrics(time: number) {
         }
       }
     }
-    let next = activeLyrics.get(nextkey!);
-    let previous = activeLyrics.get(previouskey!);
+    let next = AllLyrics.get(nextkey!);
+    let previous = AllLyrics.get(previouskey!);
     if (next) {
       result = result!.concat(next);
     }
@@ -375,7 +375,7 @@ export function findCurrentAndNextLyrics(time: number) {
 }
 
 export function findLyricsAroundTime(time: number) {
-  let keys = Array.from(activeLyrics.keys());
+  let keys = Array.from(AllLyrics.keys());
   for (let key of keys) {
   }
 }

@@ -1,5 +1,5 @@
 import { AnimatedText } from "./classes/AnimatedText";
-import { allAnimatedTexts, globalRegulator } from "./globals";
+import { AllAnimatedTexts, globalRegulator } from "./globals";
 import * as fabric from "fabric";
 
 export function addAnimatedText(
@@ -24,12 +24,12 @@ export function addAnimatedText(
       duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
       easing: "easeInQuad",
       fill: "#ffffff",
-      defaultScaleX: 1,
-      defaultScaleY: 1,
+      scaleX: 1,
+      scaleY: 1,
     },
     0.5 // This is the importance -- GEORGE
   );
-  allAnimatedTexts.push(newtext);
+  AllAnimatedTexts.push(newtext);
   newtext.renderAnimatedText(canvas, startTime, endTime);
   return newtext;
 }

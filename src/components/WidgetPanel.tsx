@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from "react";
-import { Box, SelectChangeEvent, Tab, Tabs, Typography } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Tab, Tabs, Typography } from "@mui/material";
 import ImportanceTab, { Customization } from "./ImportanceTab"; // Import the new component
-import { activeLyrics, globalRegulator } from "@/helpers/globals";
+import { AllLyrics, globalRegulator } from "@/helpers/globals";
 import { getLineFromIndex, numberToRgb } from "@/helpers/misc";
 import LyricalInstrumentsTab, {
   InstrumentSettings,
@@ -20,8 +20,12 @@ export default function WidgetPanel({
   const [lineInstruments, setLineInstruments] = useState<{
     [key: number]: string;
   }>({});
+  const [lineImportance, setLineImportance] = useState<{
+    [key: number]: number[];
+  }>({});
   const [instrumentSettings, setInstrumentSettings] =
     useState<InstrumentSettings>({});
+
   const lyricsAvailable =
     currentLyrics && currentLyrics.length > 0 && currentLyrics[0].length;
   if (!lyricsAvailable) {
@@ -60,6 +64,11 @@ export default function WidgetPanel({
     lineIndex: number,
     importanceValues: number[]
   ) => {
+    setLineImportance((prev) => ({
+      ...prev,
+      [lineIndex]: importanceValues,
+    }));
+
     let changedLine = getLineFromIndex(lineIndex);
     if (!changedLine) {
       console.warn(
@@ -76,56 +85,12 @@ export default function WidgetPanel({
     changedLine.forEach((animatedText, index) => {
       const importanceValue = importanceValues[index];
       if (typeof importanceValue === "number") {
-        animatedText.setImportance(importanceValue);
+        animatedText.applyImportance(importanceValue);
       } else {
         console.error(`Importance value at index ${index} is not a number.`);
       }
     });
     reAnimate();
-  };
-
-  const handleCustomizationChange = (customizations: Customization[]) => {
-    customizations.forEach((customization) => {
-      if (customization.type === "Enlarge by") {
-        console.log("[handleCustChange] Enlarge by", customization.factor);
-        globalRegulator.impEnlargeFactor = customization.factor;
-      } else if (customization.type === "Slow down animation by") {
-        console.log("[handleCustChange] Slow down by", customization.factor);
-        globalRegulator.impAnimSlowFactor = customization.factor;
-      } else if (customization.type === "Shift color") {
-        console.log("[handleCustChange] Shift color by", customization.factor);
-        let decode = numberToRgb(customization.factor);
-        globalRegulator.impRGBColor = [decode.r, decode.g, decode.b];
-      }
-    });
-
-    // refresh ALL animated texts
-    activeLyrics.forEach((line) => {
-      line.forEach((animatedText) => {
-        animatedText.refresh();
-      });
-    });
-
-    reAnimate();
-  };
-
-  const handleAnimationChange = (lineIndex: number, animation: string) => {
-    let changedLine = getLineFromIndex(lineIndex);
-    if (!changedLine) {
-      console.warn(
-        `[handleAnimationChange] Line ${lineIndex} not found in the active lyrics map.`
-      );
-      return;
-    }
-    changedLine.forEach((animatedText) => {
-      animatedText.props.preset = animation;
-    });
-    console.log(
-      "[handleAnimationChange] changed index",
-      lineIndex,
-      " to:",
-      animation
-    );
   };
 
   const handleWordCloudChange = (
@@ -167,7 +132,7 @@ export default function WidgetPanel({
     settings: InstrumentSettings,
     selectedLines: number[]
   ) => {
-    // Update instrument settings
+    // Update the instrument settings
     setInstrumentSettings((prevSettings) => ({
       ...prevSettings,
       [instrument]: settings,
@@ -182,59 +147,80 @@ export default function WidgetPanel({
       return updatedLineInstruments;
     });
 
-    // Apply the settings to the lines that have the instrument assigned
-    Object.keys(lineInstruments).forEach((lineIndexStr) => {
-      const lineIndex = parseInt(lineIndexStr, 10);
-      const instrument = lineInstruments[lineIndex];
+    // Apply the settings to the selected lines
+    selectedLines.forEach((lineIndex) => {
       const line = getLineFromIndex(lineIndex);
+      if (line) {
+        line.forEach((animatedText) => {
+          // Apply the instrument logic based on the selected instrument
+          if (
+            instrument === "boldThreshold" &&
+            settings.boldThreshold !== undefined
+          ) {
+            // Apply bold threshold logic
+            globalRegulator.impBoldThreshold = settings.boldThreshold;
+          }
 
-      // if (line && instrument) {
-      //   line.forEach((animatedText) => {
-      //     // Apply the settings based on the selected instrument
-      //     if (
-      //       instrument === "boldThreshold" &&
-      //       settings.boldThreshold !== undefined
-      //     ) {
-      //       // Apply bold threshold logic
-      //       if (animatedText.importance >= settings.boldThreshold) {
-      //         animatedText.textFabricObject!.fontWeight = "bold";
-      //       } else {
-      //         animatedText.textFabricObject!.fontWeight = "normal";
-      //       }
-      //     }
+          if (
+            instrument === "sizeScaling" &&
+            settings.sizeScaleFactor !== undefined
+          ) {
+            // Apply size scaling logic
+            globalRegulator.impEnlargeFactor = settings.sizeScaleFactor;
+          }
 
-      //     if (
-      //       instrument === "sizeScaling" &&
-      //       settings.sizeScaleFactor !== undefined
-      //     ) {
-      //       // Apply size scaling logic
-      //       const scaleFactor =
-      //         1 + animatedText.importance * (settings.sizeScaleFactor - 1);
-      //       animatedText.props.defaultScaleX = scaleFactor;
-      //       animatedText.props.defaultScaleY = scaleFactor;
-      //     }
+          if (
+            instrument === "animationSpeedScaling" &&
+            settings.animationSpeedFactor !== undefined
+          ) {
+            // Apply animation speed scaling logic
+            globalRegulator.impAnimSlowFactor = settings.animationSpeedFactor;
+          }
 
-      //     if (
-      //       instrument === "animationSpeed" &&
-      //       settings.animationSpeedFactor !== undefined
-      //     ) {
-      //       // Apply animation speed scaling logic
-      //       animatedText.duration =
-      //         animatedText.duration *
-      //         (1 +
-      //           animatedText.importance * (settings.animationSpeedFactor - 1));
-      //     }
-
-      //     // Refresh the animated text to apply changes
-      //     animatedText.refresh();
-      //   });
-      // }
+          // Refresh the animated text to apply changes
+          animatedText.applyInstrument(instrument);
+        });
+      }
     });
 
     reAnimate();
   };
 
-  const handleLyricalInstrumentReset = () => {};
+  const handleLyricalInstrumentReset = (
+    instrument: string,
+    selectedLines: number[]
+  ) => {
+    // BASICALLY DOING NOTHING RN Because I haven't figured out what this is.
+    // Remove instrument from lineInstruments
+    // setLineInstruments((prevLineInstruments) => {
+    //   const updatedLineInstruments = { ...prevLineInstruments };
+    //   selectedLines.forEach((lineIndex) => {
+    //     if (updatedLineInstruments[lineIndex] === instrument) {
+    //       delete updatedLineInstruments[lineIndex];
+    //     }
+    //   });
+    //   return updatedLineInstruments;
+    // });
+
+    // Reset properties on animated texts
+    selectedLines.forEach((lineIndex) => {
+      const line = getLineFromIndex(lineIndex);
+      if (line) {
+        line.forEach((animatedText) => {
+          // Reset properties based on instrument
+          if (instrument === "boldThreshold") {
+          }
+          if (instrument === "sizeScaling") {
+          }
+          if (instrument === "animationSpeedScaling") {
+          }
+          // animatedText.refresh();
+        });
+      }
+    });
+
+    // reAnimate();
+  };
 
   return (
     <Box display="flex" height="100%">
@@ -269,7 +255,8 @@ export default function WidgetPanel({
             onLyricsLineSelect={handleLyricsLineSelect}
             onImportanceChange={handleImportanceChange}
             onInstrumentChange={handleInstrumentChange}
-            lineInstruments={lineInstruments} // Pass the assigned instruments
+            lineInstruments={lineInstruments}
+            lineImportance={lineImportance}
           />
         )}
         {activeTab === 1 && (
@@ -290,3 +277,47 @@ export default function WidgetPanel({
     </Box>
   );
 }
+
+//const handleCustomizationChange = (customizations: Customization[]) => {
+//   customizations.forEach((customization) => {
+//     if (customization.type === "Enlarge by") {
+//       console.log("[handleCustChange] Enlarge by", customization.factor);
+//       globalRegulator.impEnlargeFactor = customization.factor;
+//     } else if (customization.type === "Slow down animation by") {
+//       console.log("[handleCustChange] Slow down by", customization.factor);
+//       globalRegulator.impAnimSlowFactor = customization.factor;
+//     } else if (customization.type === "Shift color") {
+//       console.log("[handleCustChange] Shift color by", customization.factor);
+//       let decode = numberToRgb(customization.factor);
+//       globalRegulator.impRGBColor = [decode.r, decode.g, decode.b];
+//     }
+//   });
+
+//   // refresh ALL animated texts
+//   AllLyrics.forEach((line) => {
+//     line.forEach((animatedText) => {
+//       animatedText.refresh();
+//     });
+//   });
+
+//   reAnimate();
+// };
+
+// const handleAnimationChange = (lineIndex: number, animation: string) => {
+//   let changedLine = getLineFromIndex(lineIndex);
+//   if (!changedLine) {
+//     console.warn(
+//       `[handleAnimationChange] Line ${lineIndex} not found in the active lyrics map.`
+//     );
+//     return;
+//   }
+//   changedLine.forEach((animatedText) => {
+//     animatedText.props.preset = animation;
+//   });
+//   console.log(
+//     "[handleAnimationChange] changed index",
+//     lineIndex,
+//     " to:",
+//     animation
+//   );
+// };

@@ -17,6 +17,6 @@ export interface AnimationProps {
   fontFamily?: string;
   left?: number;
   top?: number;
-  defaultScaleX?: number;
-  defaultScaleY?: number;
+  scaleX?: number;
+  scaleY?: number;
 }

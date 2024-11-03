@@ -8,7 +8,7 @@ import { LygenObject } from "./classes/LygenObject";
 /**
  * All the possible properties of an object
  */
-export const props = [
+export const PropList = [
   "left",
   "top",
   "scaleX",
@@ -31,7 +31,7 @@ export const props = [
 /**
  * All possible animation presets for the texts implemented so far
  */
-export const animationPresets = [
+export const AnimationPresets = [
   "shrink",
   "scale",
   "slide top",
@@ -54,15 +54,22 @@ export const animationPresets = [
  *   id: string
  * }>}
  */
-export const p_keyframes: PKeyframe[] = [];
-export const allObjects: LygenObject[] = [];
-export const allAnimatedTexts: FabricObject[] = [];
+export const P_Keyframes: PKeyframe[] = [];
+export const AllObjects: LygenObject[] = [];
+export const AllAnimatedTexts: FabricObject[] = [];
 /**
  * activeLyrics is a map of the current active lyrics, in the format of
  * [endTime, [AnimatedText1, AnimatedText2, ...]]
  * @NOTE activeLyrics is already SORTED by endTime when populated.
  */
-export const activeLyrics: Map<number, AnimatedText[]> = new Map();
+export const AllLyrics: Map<number, AnimatedText[]> = new Map();
+
+export const InstrumentList = [
+  { name: "Bold on Threshold", value: "boldThreshold" },
+  { name: "Size Scaling", value: "sizeScaling" },
+  { name: "Animation Speed Scaling", value: "animationSpeedScaling" },
+  // Add more instruments as needed
+];
 
 // make a global ticker to keep track of the current time and current index
 class GlobalRegulator {
@@ -77,6 +84,7 @@ class GlobalRegulator {
    * @CAUTION changing this value will change the color of all the animated texts
    */
   public static impRGBColor = [255, 255, 255];
+  public static impBoldThreshold = 0.8;
   public static defaultFont = "Cormorant Garamond";
 
   public static setCurrentTime(time: number): void {

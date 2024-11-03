@@ -10,11 +10,11 @@ import { LyricsLine } from "@/helpers/classes/LyricsLine";
 import { LygenObject } from "@/helpers/classes/LygenObject";
 import { PKeyframe } from "@/helpers/types/index";
 import {
-  props,
-  p_keyframes,
-  allObjects,
+  PropList,
+  P_Keyframes,
+  AllObjects,
   globalRegulator,
-  activeLyrics,
+  AllLyrics,
 } from "@/helpers/globals";
 import {
   enhancedLyricsParse,
@@ -188,7 +188,7 @@ const App = () => {
       }
       if (target.type === "text") {
         let text = target as fabric.Text;
-        let lyrics = activeLyrics.values();
+        let lyrics = AllLyrics.values();
         let animText = undefined;
         for (let line of lyrics) {
           for (let word of line) {
@@ -208,7 +208,7 @@ const App = () => {
         // NOTE: here, I get these objects by getting "_objects", which is NOT specified in the fabric.js documentation. They are REALLY BAD! -- GEORGE
         target.get("_objects").forEach((obj: FabricObject) => {
           let text = obj as fabric.Text;
-          let lyrics = activeLyrics.values();
+          let lyrics = AllLyrics.values();
           let animText = undefined;
           for (let line of lyrics) {
             for (let word of line) {
@@ -226,8 +226,8 @@ const App = () => {
           let realTop = target.top + text.top;
           animText.props.left = realLeft;
           animText.props.top = realTop;
-          animText.props.defaultScaleX = text.scaleX! * target.scaleX!;
-          animText.props.defaultScaleY = text.scaleY! * target.scaleY!;
+          animText.props.scaleX = text.scaleX! * target.scaleX!;
+          animText.props.scaleY = text.scaleY! * target.scaleY!;
           canvas.renderAll();
         });
       }
@@ -351,7 +351,7 @@ const App = () => {
       return;
     }
     globalRegulator.setCurrentTime(time);
-    animate(false, time, canvas!, allObjects, p_keyframes, videoDuration);
+    animate(false, time, canvas!, AllObjects, P_Keyframes, videoDuration);
   };
 
   const onLyricsSearchSuccess = (lyrics: string) => {
@@ -403,8 +403,8 @@ const App = () => {
                 true,
                 globalRegulator.currentTime,
                 canvas!,
-                allObjects,
-                p_keyframes,
+                AllObjects,
+                P_Keyframes,
                 videoDuration
               );
             }}
@@ -427,8 +427,8 @@ const App = () => {
                 false,
                 globalRegulator.currentTime,
                 canvas!,
-                allObjects,
-                p_keyframes,
+                AllObjects,
+                P_Keyframes,
                 videoDuration
               );
             }}
@@ -551,7 +551,7 @@ export function newLayer(
     let currentObject = objects.find(
       (x) => x.id == newObject.id
     ) as fabric.Object;
-    props.forEach(function (prop) {
+    PropList.forEach(function (prop) {
       if (
         ["lineHeight", "charSpacing"].includes(prop) &&
         newObject.get("type") == "textbox"
@@ -618,8 +618,8 @@ function newAudioLayer(src: string, canvas: fabric.Canvas) {
     canvas.add(nullobject);
     newLayer(
       nullobject,
-      allObjects,
-      p_keyframes,
+      AllObjects,
+      P_Keyframes,
       canvas,
       audio.duration * 1000,
       0

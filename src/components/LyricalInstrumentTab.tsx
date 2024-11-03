@@ -12,6 +12,7 @@ import {
   ListItemText,
   FormGroup,
 } from "@mui/material";
+import { InstrumentList } from "@/helpers/globals";
 
 interface LyricalInstrumentsTabProps {
   onApply: (
@@ -29,13 +30,6 @@ export interface InstrumentSettings {
   sizeScaleFactor?: number;
   animationSpeedFactor?: number;
 }
-
-const instrumentsList = [
-  { name: "Bold on Threshold", value: "boldThreshold" },
-  { name: "Size Scaling", value: "sizeScaling" },
-  { name: "Animation Speed Scaling", value: "animationSpeedScaling" },
-  // Add more instruments as needed
-];
 
 export default function LyricalInstrumentsTab({
   onApply,
@@ -97,7 +91,7 @@ export default function LyricalInstrumentsTab({
       {/* Left side with instruments list */}
       <Box width="30%" borderRight="1px solid #ccc">
         <List component="nav">
-          {instrumentsList.map((instrument) => (
+          {InstrumentList.map((instrument) => (
             <ListItem
               key={instrument.value}
               disablePadding
@@ -120,9 +114,8 @@ export default function LyricalInstrumentsTab({
             <Typography variant="h6">
               Configure{" "}
               {
-                instrumentsList.find(
-                  (inst) => inst.value === selectedInstrument
-                )?.name
+                InstrumentList.find((inst) => inst.value === selectedInstrument)
+                  ?.name
               }
             </Typography>
 
