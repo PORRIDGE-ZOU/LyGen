@@ -34,7 +34,6 @@ const App = () => {
   // ------------------ STATE VARIABLES ------------------
   const [canvas, setCanvas] = useState<fabric.Canvas>();
   const [videoDuration, setVideoDuration] = useState<number>(10000);
-  const [filltext, setFillText] = useState("#ffffff");
   const [fillcolor, setFillColor] = useState("#ffffff");
   const [activeXPos, setActiveXPos] = useState<number>(0);
   const [activeYPos, setActiveYPos] = useState<number>(0);
@@ -122,48 +121,61 @@ const App = () => {
   }, []);
 
   function canvasSetup(canvas: fabric.Canvas) {
-    // canvas.on("selection:created", (e) => {
-    //   let active = canvas.getActiveObject();
-    //   let x = active?.get("left");
-    //   let y = active?.get("top");
-    //   setActiveXPos(x!);
-    //   setActiveYPos(y!);
-    //   let fill = active?.get("fill");
-    //   setFillColor(fill!);
+    canvas.on("selection:created", (e) => {
+      let active = canvas.getActiveObject();
+      if (!active) {
+        return;
+      }
+      let x = Math.round(active.get("left")!);
+      let y = Math.round(active.get("top")!);
+      setActiveXPos(x!);
+      setActiveYPos(y!);
+      let fill = active?.get("fill");
+      if (fill.startsWith("rgb") && fill.includes(",") && fill.includes(")")) {
+        const rgbValues = fill
+          .substring(fill.indexOf("(") + 1, fill.indexOf(")"))
+          .split(",")
+          .map((val: string) => parseInt(val, 10));
 
-    //   let text = active?.get("text");
-    //   if (text) {
-    //     console.log("[canvasSetup] active text: ", text);
-    //   }
-    // });
+        const hexColor = `#${rgbValues
+          .map((val: { toString: (arg0: number) => string }) =>
+            val.toString(16).padStart(2, "0")
+          )
+          .join("")}`;
 
-    // canvas.on("selection:updated", (e) => {
-    //   // TODO: Update the value in specific Animated Text object. Now, it will shift back once you play the video. -- GEORGE
-    //   let active = canvas.getActiveObject();
-    //   let x = active?.get("left");
-    //   let y = active?.get("top");
-    //   setActiveXPos(x!);
-    //   setActiveYPos(y!);
-    //   let fill = active?.get("fill");
+        setFillColor(hexColor);
+      } else {
+        setFillColor(fill!);
+      }
 
-    //   // TODO: I temporarily used this same code as in ColorPickerInput.tsx. We should refactor this into a helper function? The reason why I don't use onColorChange() is because that has a strange reselection bug. -- GEORGE
-    //   if (fill.startsWith("rgb") && fill.includes(",") && fill.includes(")")) {
-    //     const rgbValues = fill
-    //       .substring(fill.indexOf("(") + 1, fill.indexOf(")"))
-    //       .split(",")
-    //       .map((val: string) => parseInt(val, 10));
+      let text = active?.get("text");
+      if (text) {
+        console.log("[canvasSetup] active text: ", text);
+      }
+    });
 
-    //     const hexColor = `#${rgbValues
-    //       .map((val: { toString: (arg0: number) => string }) =>
-    //         val.toString(16).padStart(2, "0")
-    //       )
-    //       .join("")}`;
+    canvas.on("selection:updated", (e) => {
+      // TODO: Update the value in specific Animated Text object. Now, it will shift back once you play the video. -- GEORGE
+      let active = canvas.getActiveObject();
+      if (!active) {
+        return;
+      }
+      let x = Math.round(active.get("left")!);
+      let y = Math.round(active.get("top")!);
+      setActiveXPos(x!);
+      setActiveYPos(y!);
+    });
 
-    //     setFillColor(hexColor);
-    //   } else {
-    //     setFillColor(fill!);
-    //   }
-    // });
+    canvas.on("object:moving", (e) => {
+      let active = canvas.getActiveObject();
+      if (!active) {
+        return;
+      }
+      let x = Math.round(active.get("left")!);
+      let y = Math.round(active.get("top")!);
+      setActiveXPos(x!);
+      setActiveYPos(y!);
+    });
 
     canvas.on("object:modified", (e) => {
       let action = e.action;
@@ -174,12 +186,6 @@ const App = () => {
       ) {
         return;
       }
-
-      console.log(
-        "[canvasSetup] object modified! action: ",
-        e.action,
-        e.target.type
-      );
       if (target.type === "text") {
         let text = target as fabric.Text;
         let lyrics = activeLyrics.values();
@@ -216,25 +222,12 @@ const App = () => {
             console.warn("[canvasSetup] cannot find this text object");
             return;
           }
-          console.log(
-            "This text is: ",
-            text.text,
-            " and it's left top is:",
-            text.left,
-            text.top,
-            " while animtext's left top is: ",
-            animText.props.left,
-            animText.props.top,
-            " while this target's left top is: ",
-            target.left,
-            target.top
-          );
           let realLeft = target.left + text.left;
           let realTop = target.top + text.top;
           animText.props.left = realLeft;
           animText.props.top = realTop;
-          animText.props.defaultScaleX = text.scaleX!;
-          animText.props.defaultScaleY = text.scaleY!;
+          animText.props.defaultScaleX = text.scaleX! * target.scaleX!;
+          animText.props.defaultScaleY = text.scaleY! * target.scaleY!;
           canvas.renderAll();
         });
       }
@@ -246,6 +239,10 @@ const App = () => {
     pos: string
   ) {
     let active = canvas?.getActiveObject();
+    if (!active) {
+      return;
+    }
+    // the code below can also handle group selection. -- GEORGE
     if (pos === "x") {
       setActiveXPos(parseInt(event.target.value));
       active?.set({ left: parseInt(event.target.value) });
@@ -254,17 +251,28 @@ const App = () => {
       active?.set({ top: parseInt(event.target.value) });
     }
     canvas?.renderAll();
-    reselect(active!, canvas!);
+    // reselect(active!, canvas!);
   }
 
   function onColorChange(newcolor: string) {
     let active = canvas?.getActiveObject();
+    if (!active) {
+      return;
+    }
+    if (active.get("type") === "activeselection") {
+      // this means it's a group selection -- GEORGE
+      let objects = (active as fabric.Group).getObjects();
+      objects.forEach((object) => {
+        object.set({ fill: newcolor });
+      });
+      setFillColor(newcolor);
+      canvas?.renderAll();
+      return;
+    }
     active?.set({ fill: newcolor });
-    canvas?.renderAll();
-    reselect(active!, canvas!);
     setFillColor(newcolor);
-    setFillText(newcolor);
-
+    canvas?.renderAll();
+    // reselect(active!, canvas!);
     // canvas?.discardActiveObject();
   }
 
@@ -381,8 +389,8 @@ const App = () => {
             onPositionChange={onPositionChange}
             color={fillcolor}
             onColorChange={onColorChange}
-            text={filltext}
-            onTextChange={setFillText}
+            text={fillcolor}
+            onTextChange={setFillColor}
           ></InfoPanel>
         </Box>
       </Box>

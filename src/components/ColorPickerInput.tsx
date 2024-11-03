@@ -24,12 +24,6 @@ const ColorPickerInput = ({
   };
 
   const handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newColor = event.target.value;
-    setColor(newColor);
-    handleTextChange(event);
-  };
-
-  const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newText = event.target.value;
 
     // check if the text is in "rgb(x, y, z)" format
@@ -70,7 +64,7 @@ const ColorPickerInput = ({
   return (
     <TextField
       value={text}
-      onChange={handleTextChange}
+      onChange={handleColorChange}
       label={placeholder}
       variant="outlined"
       InputProps={{
