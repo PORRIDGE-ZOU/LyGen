@@ -163,8 +163,6 @@ export function renderText(
     opacity: 1,
   });
   result.set({
-    defaultLeft: result.left,
-    defaultTop: result.top,
     defaultScaleX: defaultScaleX ? defaultScaleX : 1,
     defaultScaleY: defaultScaleY ? defaultScaleY : 1,
     scaleX: defaultScaleX ? defaultScaleX : 1,
