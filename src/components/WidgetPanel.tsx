@@ -3,7 +3,9 @@ import { Box, SelectChangeEvent, Tab, Tabs, Typography } from "@mui/material";
 import ImportanceTab, { Customization } from "./ImportanceTab"; // Import the new component
 import { activeLyrics, globalRegulator } from "@/helpers/globals";
 import { getLineFromIndex, numberToRgb } from "@/helpers/misc";
-import LyricalInstrumentsTab from "./LyricalInstrumentTab";
+import LyricalInstrumentsTab, {
+  InstrumentSettings,
+} from "./LyricalInstrumentTab";
 
 interface WidgetPanelProps {
   currentLyrics: string[][];
@@ -15,6 +17,11 @@ export default function WidgetPanel({
   reAnimate,
 }: WidgetPanelProps) {
   const [activeTab, setActiveTab] = useState(0);
+  const [lineInstruments, setLineInstruments] = useState<{
+    [key: number]: string;
+  }>({});
+  const [instrumentSettings, setInstrumentSettings] =
+    useState<InstrumentSettings>({});
   const lyricsAvailable =
     currentLyrics && currentLyrics.length > 0 && currentLyrics[0].length;
   if (!lyricsAvailable) {
@@ -148,14 +155,84 @@ export default function WidgetPanel({
     });
   };
 
+  const handleInstrumentChange = (lineIndex: number, instrument: string) => {
+    setLineInstruments((prev) => ({
+      ...prev,
+      [lineIndex]: instrument,
+    }));
+  };
+
   const handleLyricalInstrumentApply = (
     instrument: string,
-    options: {
-      emphasisScale: number;
-      animationSpeed: number;
-      alignment: string;
-    }
-  ) => {};
+    settings: InstrumentSettings,
+    selectedLines: number[]
+  ) => {
+    // Update instrument settings
+    setInstrumentSettings((prevSettings) => ({
+      ...prevSettings,
+      [instrument]: settings,
+    }));
+
+    // Update lineInstruments
+    setLineInstruments((prevLineInstruments) => {
+      const updatedLineInstruments = { ...prevLineInstruments };
+      selectedLines.forEach((lineIndex) => {
+        updatedLineInstruments[lineIndex] = instrument;
+      });
+      return updatedLineInstruments;
+    });
+
+    // Apply the settings to the lines that have the instrument assigned
+    Object.keys(lineInstruments).forEach((lineIndexStr) => {
+      const lineIndex = parseInt(lineIndexStr, 10);
+      const instrument = lineInstruments[lineIndex];
+      const line = getLineFromIndex(lineIndex);
+
+      // if (line && instrument) {
+      //   line.forEach((animatedText) => {
+      //     // Apply the settings based on the selected instrument
+      //     if (
+      //       instrument === "boldThreshold" &&
+      //       settings.boldThreshold !== undefined
+      //     ) {
+      //       // Apply bold threshold logic
+      //       if (animatedText.importance >= settings.boldThreshold) {
+      //         animatedText.textFabricObject!.fontWeight = "bold";
+      //       } else {
+      //         animatedText.textFabricObject!.fontWeight = "normal";
+      //       }
+      //     }
+
+      //     if (
+      //       instrument === "sizeScaling" &&
+      //       settings.sizeScaleFactor !== undefined
+      //     ) {
+      //       // Apply size scaling logic
+      //       const scaleFactor =
+      //         1 + animatedText.importance * (settings.sizeScaleFactor - 1);
+      //       animatedText.props.defaultScaleX = scaleFactor;
+      //       animatedText.props.defaultScaleY = scaleFactor;
+      //     }
+
+      //     if (
+      //       instrument === "animationSpeed" &&
+      //       settings.animationSpeedFactor !== undefined
+      //     ) {
+      //       // Apply animation speed scaling logic
+      //       animatedText.duration =
+      //         animatedText.duration *
+      //         (1 +
+      //           animatedText.importance * (settings.animationSpeedFactor - 1));
+      //     }
+
+      //     // Refresh the animated text to apply changes
+      //     animatedText.refresh();
+      //   });
+      // }
+    });
+
+    reAnimate();
+  };
 
   const handleLyricalInstrumentReset = () => {};
 
@@ -191,15 +268,16 @@ export default function WidgetPanel({
             lyrics={currentLyrics}
             onLyricsLineSelect={handleLyricsLineSelect}
             onImportanceChange={handleImportanceChange}
-            onCustomizationChange={handleCustomizationChange}
-            onAnimationChange={handleAnimationChange}
-            onWordCloudLayoutComplete={handleWordCloudChange}
+            onInstrumentChange={handleInstrumentChange}
+            lineInstruments={lineInstruments} // Pass the assigned instruments
           />
         )}
         {activeTab === 1 && (
           <LyricalInstrumentsTab
             onApply={handleLyricalInstrumentApply}
             onReset={handleLyricalInstrumentReset}
+            lineInstruments={lineInstruments}
+            lyrics={currentLyrics}
           />
         )}
         {activeTab === 2 && (

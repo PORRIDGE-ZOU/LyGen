@@ -5,12 +5,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  IconButton,
-  TextField,
-  Typography,
-  Container,
-  Checkbox,
-  FormControlLabel,
   SelectChangeEvent,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -23,18 +17,8 @@ interface ImportanceTabProps {
   lyrics: string[][];
   onLyricsLineSelect: (lineIndex: number) => void;
   onImportanceChange: (lineIndex: number, importanceValues: number[]) => void;
-  onCustomizationChange: (customizations: Customization[]) => void;
-  onAnimationChange: (lineIndex: number, animation: string) => void;
-  onWordCloudLayoutComplete: (
-    lineIndex: number,
-    layout: {
-      word: string;
-      x: number;
-      y: number;
-      size: number;
-      rotate: number;
-    }[]
-  ) => void;
+  onInstrumentChange: (lineIndex: number, instrument: string) => void;
+  lineInstruments: { [key: number]: string }; // New prop
 }
 
 export interface Customization {
@@ -52,9 +36,8 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   lyrics,
   onLyricsLineSelect,
   onImportanceChange,
-  onCustomizationChange,
-  onAnimationChange,
-  onWordCloudLayoutComplete,
+  onInstrumentChange,
+  lineInstruments,
 }) => {
   const [selectedLineIndex, setSelectedLineIndex] = useState(
     lyrics.length > 0 ? 0 : -1
@@ -62,18 +45,12 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   const [importanceValues, setImportanceValues] = useState<number[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [selectedInstrument, setSelectedInstrument] = useState("");
 
-  const [customizations, setCustomizations] = useState<Customization[]>([]); // Store customizations
-  const [impColor, setImpColor] = useState<string>("#ffffff");
-  const [selectedCustomization, setSelectedCustomization] = useState("");
-
-  // Store selected animations for each line
-  const [lineAnimations, setLineAnimations] = useState<{
-    [key: number]: string;
-  }>({});
-
-  const [useWordCloud, setUseWordCloud] = useState(false);
-  const [wordCloudWords, setWordCloudWords] = useState<string[]>([]);
+  useEffect(() => {
+    const instrument = lineInstruments[selectedLineIndex] || "";
+    setSelectedInstrument(instrument);
+  }, [selectedLineIndex, lineInstruments]);
 
   // Importance Curve ----------------
   // Initialize importance values and wordcloud words when selected line changes
@@ -81,7 +58,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     if (lyrics[selectedLineIndex]) {
       const wordsInLine = lyrics[selectedLineIndex].length;
       setImportanceValues(Array(wordsInLine).fill(0.5)); // Default importance 0.5
-      setWordCloudWords(lyrics[selectedLineIndex]);
+      // setWordCloudWords(lyrics[selectedLineIndex]);
     }
   }, [selectedLineIndex, lyrics]);
 
@@ -121,63 +98,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   // Left offset for y-axis labels
   const xOffset = 30;
 
-  // Customizations ----------------
-  useEffect(() => {
-    onCustomizationChange(customizations);
-  }, [customizations]);
-
-  const addCustomization = (type: string) => {
-    setCustomizations([...customizations, { type, factor: 1 }]);
-    setSelectedCustomization(""); // Reset selection after adding
-  };
-
-  const removeCustomization = (index: number) => {
-    const updated = [...customizations];
-    updated.splice(index, 1);
-    setCustomizations(updated);
-  };
-
-  const handleFactorChange = (index: number, factor: number) => {
-    const updated = [...customizations];
-    updated[index].factor = factor;
-    setCustomizations(updated);
-  };
-
-  const handleColorChange = (newcolor: string, index: number) => {
-    setImpColor(newcolor);
-    // newcolor is a hex color string. convert it to rgb
-    // Remove the leading '#' if it's there
-    let hex = newcolor.replace(/^#/, "");
-    // Parse the r, g, b values
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    let rgbencode = rgbToNumber(r, g, b);
-    handleFactorChange(index, rgbencode);
-  };
-
-  // Handle animation change
-  const handleAnimationChange = (animation: string) => {
-    setLineAnimations((prevAnimations) => ({
-      ...prevAnimations,
-      [selectedLineIndex]: animation,
-    }));
-    onAnimationChange(selectedLineIndex, animation);
-  };
-
-  // Word Cloud ----------------
-  const handleLayoutComplete = (
-    layout: {
-      word: string;
-      x: number;
-      y: number;
-      size: number;
-      rotate: number;
-    }[]
-  ) => {
-    console.log("Word cloud layout complete!", layout);
-  };
-
   /**
    * PREVENT RENDERING WHEN LYRICS ARE LOADING
    */
@@ -185,85 +105,16 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     return <div>Loading lyrics...</div>;
   }
 
-  // UI for Customizations
-  const renderCustomizations = () => (
-    <Container>
-      <Typography variant="h6" fontFamily={"Cormorant Garamond"}>
-        Define what importance means!
-      </Typography>
-      <Typography variant="body1" fontFamily={"Cormorant Garamond"}>
-        By changing the importance of a word from 0.5 to 1, I want the word
-        to...
-      </Typography>
-      <Box mt={2}>
-        {customizations.map((customization, index) =>
-          customization.type === "Shift color" ? (
-            <Box key={index} display="flex" alignItems="center" mb={1}>
-              <span>{customization.type} (in gradient) toward </span>
-              <ColorPickerInput
-                color={impColor}
-                setColor={(color) => handleColorChange(color, index)}
-                text={impColor}
-                setText={(color) => handleColorChange(color, index)}
-              ></ColorPickerInput>
-              <IconButton
-                aria-label="delete"
-                size="small"
-                onClick={() => removeCustomization(index)}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          ) : (
-            <Box key={index} display="flex" alignItems="center" mb={1}>
-              <span>{customization.type}</span>
-              <TextField
-                type="number"
-                value={customization.factor}
-                onChange={(e) =>
-                  handleFactorChange(index, parseFloat(e.target.value))
-                }
-                size="small"
-                style={{ marginLeft: 8, marginRight: 8, width: "60px" }}
-              />
-              <IconButton
-                aria-label="delete"
-                size="small"
-                onClick={() => removeCustomization(index)}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          )
-        )}
-        {/* Add New Customization */}
-        <FormControl fullWidth variant="outlined" margin="normal">
-          <InputLabel></InputLabel>
-          <Select
-            onChange={(e) => addCustomization(e.target.value as string)}
-            value={selectedCustomization}
-            displayEmpty
-          >
-            <MenuItem value="" disabled>
-              Select a customization
-            </MenuItem>
-            {availableCustomizations
-              .filter((type) => !customizations.some((c) => c.type === type))
-              .map((type) => (
-                <MenuItem key={type} value={type}>
-                  {type}
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-      </Box>
-    </Container>
-  );
-
   const lyricsLineSelect = (e: SelectChangeEvent<number>) => {
     console.log("Selected line index:", e.target.value);
     setSelectedLineIndex(e.target.value as number);
     onLyricsLineSelect(e.target.value as number);
+  };
+
+  const handleInstrumentSelect = (event: { target: { value: string } }) => {
+    const instrument = event.target.value as string;
+    setSelectedInstrument(instrument);
+    onInstrumentChange(selectedLineIndex, instrument); // Update parent state
   };
 
   return (
@@ -284,8 +135,23 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
         </Select>
       </FormControl>
 
-      {/* Dropdown Menu for Animation */}
+      {/* Dropdown Menu for Lyrical Instruments */}
       <FormControl fullWidth variant="outlined" margin="normal">
+        <InputLabel>Select Lyrical Instrument</InputLabel>
+        <Select
+          value={selectedInstrument}
+          onChange={handleInstrumentSelect}
+          label="Select Lyrical Instrument"
+        >
+          <MenuItem value="boldThreshold">Bold on Threshold</MenuItem>
+          <MenuItem value="sizeScaling">Size Scaling</MenuItem>
+          <MenuItem value="animationSpeed">Animation Speed Scaling</MenuItem>
+          {/* Add more instruments if needed */}
+        </Select>
+      </FormControl>
+
+      {/* Dropdown Menu for Animation */}
+      {/* <FormControl fullWidth variant="outlined" margin="normal">
         <InputLabel></InputLabel>
         <Select
           value={lineAnimations[selectedLineIndex] || ""}
@@ -302,7 +168,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
             </MenuItem>
           ))}
         </Select>
-      </FormControl>
+      </FormControl> */}
 
       {/* Curve Graph */}
       <Box
@@ -362,10 +228,10 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
       </Box>
 
       {/* Customizations */}
-      {renderCustomizations()}
+      {/* {renderCustomizations()} */}
 
       {/* Word Cloud */}
-      <FormControlLabel
+      {/* <FormControlLabel
         control={
           <Checkbox
             checked={useWordCloud}
@@ -375,20 +241,18 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
         label="I want to use Wordcloud for this line"
       />
       <div>
-        {/* <WordCloudGenerator
+        <WordCloudGenerator
           words={wordCloudWords}
           importanceValues={importanceValues}
           width={960}
           height={540}
           onLayoutComplete={handleLayoutComplete}
-        /> */}
-        {/* Render your Fabric.js canvas here and use 'layout' to position words */}
-      </div>
+        />
+      </div> */}
     </Box>
   );
 
   // Helper Functions -----------------
-
   function handleMouseDown(
     e: React.MouseEvent<SVGCircleElement, MouseEvent>,
     index: number
@@ -485,3 +349,145 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
 };
 
 export default ImportanceTab;
+
+// const [customizations, setCustomizations] = useState<Customization[]>([]); // Store customizations
+// const [impColor, setImpColor] = useState<string>("#ffffff");
+// const [selectedCustomization, setSelectedCustomization] = useState("");
+
+// // Store selected animations for each line
+// const [lineAnimations, setLineAnimations] = useState<{
+//   [key: number]: string;
+// }>({});
+
+// const [useWordCloud, setUseWordCloud] = useState(false);
+// const [wordCloudWords, setWordCloudWords] = useState<string[]>([]);
+// Customizations ----------------
+// useEffect(() => {
+//   onCustomizationChange(customizations);
+// }, [customizations]);
+
+// const addCustomization = (type: string) => {
+//   setCustomizations([...customizations, { type, factor: 1 }]);
+//   setSelectedCustomization(""); // Reset selection after adding
+// };
+
+// const removeCustomization = (index: number) => {
+//   const updated = [...customizations];
+//   updated.splice(index, 1);
+//   setCustomizations(updated);
+// };
+
+// const handleFactorChange = (index: number, factor: number) => {
+//   const updated = [...customizations];
+//   updated[index].factor = factor;
+//   setCustomizations(updated);
+// };
+
+// const handleColorChange = (newcolor: string, index: number) => {
+//   setImpColor(newcolor);
+//   // newcolor is a hex color string. convert it to rgb
+//   // Remove the leading '#' if it's there
+//   let hex = newcolor.replace(/^#/, "");
+//   // Parse the r, g, b values
+//   const r = parseInt(hex.substring(0, 2), 16);
+//   const g = parseInt(hex.substring(2, 4), 16);
+//   const b = parseInt(hex.substring(4, 6), 16);
+//   let rgbencode = rgbToNumber(r, g, b);
+//   handleFactorChange(index, rgbencode);
+// };
+
+// Handle animation change
+// const handleAnimationChange = (animation: string) => {
+//   setLineAnimations((prevAnimations) => ({
+//     ...prevAnimations,
+//     [selectedLineIndex]: animation,
+//   }));
+//   onAnimationChange(selectedLineIndex, animation);
+// };
+
+// Word Cloud ----------------
+// const handleLayoutComplete = (
+//   layout: {
+//     word: string;
+//     x: number;
+//     y: number;
+//     size: number;
+//     rotate: number;
+//   }[]
+// ) => {
+//   console.log("Word cloud layout complete!", layout);
+// };
+// UI for Customizations
+// const renderCustomizations = () => (
+//   <Container>
+//     <Typography variant="h6" fontFamily={"Cormorant Garamond"}>
+//       Define what importance means!
+//     </Typography>
+//     <Typography variant="body1" fontFamily={"Cormorant Garamond"}>
+//       By changing the importance of a word from 0.5 to 1, I want the word
+//       to...
+//     </Typography>
+//     <Box mt={2}>
+//       {customizations.map((customization, index) =>
+//         customization.type === "Shift color" ? (
+//           <Box key={index} display="flex" alignItems="center" mb={1}>
+//             <span>{customization.type} (in gradient) toward </span>
+//             <ColorPickerInput
+//               color={impColor}
+//               setColor={(color) => handleColorChange(color, index)}
+//               text={impColor}
+//               setText={(color) => handleColorChange(color, index)}
+//             ></ColorPickerInput>
+//             <IconButton
+//               aria-label="delete"
+//               size="small"
+//               onClick={() => removeCustomization(index)}
+//             >
+//               <DeleteIcon fontSize="small" />
+//             </IconButton>
+//           </Box>
+//         ) : (
+//           <Box key={index} display="flex" alignItems="center" mb={1}>
+//             <span>{customization.type}</span>
+//             <TextField
+//               type="number"
+//               value={customization.factor}
+//               onChange={(e) =>
+//                 handleFactorChange(index, parseFloat(e.target.value))
+//               }
+//               size="small"
+//               style={{ marginLeft: 8, marginRight: 8, width: "60px" }}
+//             />
+//             <IconButton
+//               aria-label="delete"
+//               size="small"
+//               onClick={() => removeCustomization(index)}
+//             >
+//               <DeleteIcon fontSize="small" />
+//             </IconButton>
+//           </Box>
+//         )
+//       )}
+//       {/* Add New Customization */}
+//       <FormControl fullWidth variant="outlined" margin="normal">
+//         <InputLabel></InputLabel>
+//         <Select
+//           onChange={(e) => addCustomization(e.target.value as string)}
+//           value={selectedCustomization}
+//           displayEmpty
+//         >
+//           <MenuItem value="" disabled>
+//             Select a customization
+//           </MenuItem>
+//           {availableCustomizations
+//             .filter((type) => !customizations.some((c) => c.type === type))
+//             .map((type) => (
+//               <MenuItem key={type} value={type}>
+//                 {type}
+//               </MenuItem>
+//             ))}
+//         </Select>
+//       </FormControl>
+//     </Box>
+//   </Container>
+// );

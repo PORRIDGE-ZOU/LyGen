@@ -35,7 +35,7 @@
   --card-border-rgb: 230, 210, 220;
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
     /* Dark theme colors - brighter for better readability */
     --foreground-rgb: 255, 255, 255;
