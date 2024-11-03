@@ -95,7 +95,7 @@ export async function animate(
 
 function updateAnimatedTexts(
   currenttime: number,
-  inst: fabric.Canvas,
+  canvas: fabric.Canvas,
   offset?: number
 ) {
   if (allAnimatedTexts.length > 0) {
@@ -113,7 +113,7 @@ function updateAnimatedTexts(
     for (let i = 0; i < activeLyrics.size; i++) {
       let active = values.next().value;
       active?.forEach((text) => {
-        text.seek(currenttime, inst);
+        text.seek(currenttime, canvas);
       });
     }
   }

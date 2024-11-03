@@ -15,13 +15,8 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ColorPickerInput from "./ColorPickerInput";
-import {
-  activeLyrics,
-  animationPresets,
-  globalRegulator,
-  p_keyframes,
-} from "@/helpers/globals";
-import { getLineFromIndex, rgbToNumber } from "@/helpers/misc";
+import { animationPresets } from "@/helpers/globals";
+import { rgbToNumber } from "@/helpers/misc";
 import WordCloudGenerator from "./WordCloudGenerator";
 
 interface ImportanceTabProps {
@@ -102,11 +97,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
-  // NOTE: If you adopt the commented line below, this will be called whenever you drag the
-  // seek dot in the timeline. WHY? Moreover, this will set the FIRST line to BLACK! Why? --GEORGE
-  // useEffect(() => {
-  //   onImportanceChange(selectedLineIndex, importanceValues);
-  // }, [importanceValues, onImportanceChange, selectedLineIndex]);
   useEffect(() => {
     if (importanceValues.length > 0) {
       onImportanceChange(selectedLineIndex, importanceValues);

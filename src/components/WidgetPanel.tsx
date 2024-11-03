@@ -25,7 +25,7 @@ export default function WidgetPanel({
         alignItems="center"
         height="100%"
       >
-        <Typography variant="h4">No lyrics available</Typography>
+        <Typography variant="h4">Please Upload Lyrics</Typography>
       </Box>
     );
   }
@@ -35,15 +35,13 @@ export default function WidgetPanel({
   };
 
   const handleLyricsLineSelect = (lineIndex: number) => {
-    let keys = Array.from(activeLyrics.keys());
-    let changedKey = keys[lineIndex];
-    let seekTime = changedKey - 2;
     let line = getLineFromIndex(lineIndex);
     if (line === undefined) {
       return;
     }
-    let lastText = line![line!.length - 1];
-    seekTime -= lastText.duration;
+    let lastText = line[line.length - 1];
+    // NOTE: Recall that now starttime is the time that the text FINISHES its animation. --GEORGE
+    let seekTime = lastText.textFabricObject!.get("starttime");
     console.log("last text:", lastText.text);
     console.log("seek time:", seekTime);
     globalRegulator.setCurrentTime(seekTime);
@@ -51,28 +49,6 @@ export default function WidgetPanel({
   };
 
   // NOTE: The function below will be called at various unexpected times, since it has multiple dependencies. --GEORGE
-  // const handleImportanceChange = useCallback(
-  //   (lineIndex: number, importanceValues: number[]) => {
-  //     // TODO: Handle the updated importance values here
-  //     let keys = Array.from(activeLyrics.keys());
-  //     let changedKey = keys[lineIndex];
-  //     let changedLine = activeLyrics.get(changedKey);
-  //     if (!changedLine) {
-  //       console.warn(
-  //         `[handleImpChange] Line ${lineIndex} not found in the active lyrics map.`
-  //       );
-  //       return;
-  //     }
-  //     changedLine.forEach((animatedText, index) => {
-  //       animatedText.setImportance(importanceValues[index]);
-  //     });
-
-  //     setTimeout(() => {
-  //       reAnimate();
-  //     }, 0);
-  //   },
-  //   [reAnimate] // Add any variables from outside the function here
-  // );
   const handleImportanceChange = (
     lineIndex: number,
     importanceValues: number[]
