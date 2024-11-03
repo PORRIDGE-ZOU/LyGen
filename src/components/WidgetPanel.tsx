@@ -144,8 +144,6 @@ export default function WidgetPanel({
         top: layout[index].y,
         fontSize: layout[index].size,
         angle: layout[index].rotate,
-        defaultLeft: layout[index].x,
-        defaultTop: layout[index].y,
       });
     });
   };

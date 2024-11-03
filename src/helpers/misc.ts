@@ -216,7 +216,6 @@ export function realignLineOfText(line: AnimatedText[], canvas: fabric.Canvas) {
   line.forEach((text, index) => {
     nextXPos += textWidths[index] / 2;
     text.textFabricObject!.set("left", nextXPos);
-    text.textFabricObject!.set("defaultLeft", nextXPos);
     text.props.left = nextXPos;
     nextXPos += textWidths[index] / 2;
     nextXPos += widthOfSpace;
@@ -234,6 +233,21 @@ export function getLineFromIndex(lineIndex: number) {
     );
   }
   return changedLine;
+}
+
+/**
+ * Set animText.prop values equal to text property values.
+ * @param animText
+ * @param text
+ */
+export function setPropsToAnimText(
+  animText: AnimatedText,
+  text: fabric.FabricText
+) {
+  animText.props.left = text.left!;
+  animText.props.top = text.top!;
+  animText.props.defaultScaleX = text.scaleX!;
+  animText.props.defaultScaleY = text.scaleY!;
 }
 
 export function rgbToNumber(r: number, g: number, b: number) {

@@ -14,6 +14,7 @@ import {
   p_keyframes,
   allObjects,
   globalRegulator,
+  activeLyrics,
 } from "@/helpers/globals";
 import {
   enhancedLyricsParse,
@@ -24,8 +25,9 @@ import LyricSearch from "@/components/LyricsSearch";
 import GeneralPanel from "@/components/GeneralPanel";
 import WidgetPanel from "@/components/WidgetPanel";
 import InfoPanel from "@/components/InfoPanel";
-import { reselect } from "@/helpers/misc";
+import { reselect, setPropsToAnimText } from "@/helpers/misc";
 import { animate } from "@/helpers/animation";
+import { AnimatedText } from "@/helpers/classes/AnimatedText";
 
 // ------------------ MAIN COMPONENT ------------------
 const App = () => {
@@ -120,46 +122,121 @@ const App = () => {
   }, []);
 
   function canvasSetup(canvas: fabric.Canvas) {
-    canvas.on("selection:created", (e) => {
-      let active = canvas.getActiveObject();
-      let x = active?.get("left");
-      let y = active?.get("top");
-      setActiveXPos(x!);
-      setActiveYPos(y!);
-      let fill = active?.get("fill");
-      setFillColor(fill!);
+    // canvas.on("selection:created", (e) => {
+    //   let active = canvas.getActiveObject();
+    //   let x = active?.get("left");
+    //   let y = active?.get("top");
+    //   setActiveXPos(x!);
+    //   setActiveYPos(y!);
+    //   let fill = active?.get("fill");
+    //   setFillColor(fill!);
 
-      let text = active?.get("text");
-      if (text) {
-        console.log("[canvasSetup] active text: ", text);
+    //   let text = active?.get("text");
+    //   if (text) {
+    //     console.log("[canvasSetup] active text: ", text);
+    //   }
+    // });
+
+    // canvas.on("selection:updated", (e) => {
+    //   // TODO: Update the value in specific Animated Text object. Now, it will shift back once you play the video. -- GEORGE
+    //   let active = canvas.getActiveObject();
+    //   let x = active?.get("left");
+    //   let y = active?.get("top");
+    //   setActiveXPos(x!);
+    //   setActiveYPos(y!);
+    //   let fill = active?.get("fill");
+
+    //   // TODO: I temporarily used this same code as in ColorPickerInput.tsx. We should refactor this into a helper function? The reason why I don't use onColorChange() is because that has a strange reselection bug. -- GEORGE
+    //   if (fill.startsWith("rgb") && fill.includes(",") && fill.includes(")")) {
+    //     const rgbValues = fill
+    //       .substring(fill.indexOf("(") + 1, fill.indexOf(")"))
+    //       .split(",")
+    //       .map((val: string) => parseInt(val, 10));
+
+    //     const hexColor = `#${rgbValues
+    //       .map((val: { toString: (arg0: number) => string }) =>
+    //         val.toString(16).padStart(2, "0")
+    //       )
+    //       .join("")}`;
+
+    //     setFillColor(hexColor);
+    //   } else {
+    //     setFillColor(fill!);
+    //   }
+    // });
+
+    canvas.on("object:modified", (e) => {
+      let action = e.action;
+      let target = e.target;
+      if (
+        action == null ||
+        !["scaleX", "scaleY", "scale", "drag", "rotate"].includes(action)
+      ) {
+        return;
       }
-    });
 
-    canvas.on("selection:updated", (e) => {
-      // TODO: Update the value in specific Animated Text object. Now, it will shift back once you play the video. -- GEORGE
-      let active = canvas.getActiveObject();
-      let x = active?.get("left");
-      let y = active?.get("top");
-      setActiveXPos(x!);
-      setActiveYPos(y!);
-      let fill = active?.get("fill");
-
-      // TODO: I temporarily used this same code as in ColorPickerInput.tsx. We should refactor this into a helper function? The reason why I don't use onColorChange() is because that has a strange reselection bug. -- GEORGE
-      if (fill.startsWith("rgb") && fill.includes(",") && fill.includes(")")) {
-        const rgbValues = fill
-          .substring(fill.indexOf("(") + 1, fill.indexOf(")"))
-          .split(",")
-          .map((val: string) => parseInt(val, 10));
-
-        const hexColor = `#${rgbValues
-          .map((val: { toString: (arg0: number) => string }) =>
-            val.toString(16).padStart(2, "0")
-          )
-          .join("")}`;
-
-        setFillColor(hexColor);
-      } else {
-        setFillColor(fill!);
+      console.log(
+        "[canvasSetup] object modified! action: ",
+        e.action,
+        e.target.type
+      );
+      if (target.type === "text") {
+        let text = target as fabric.Text;
+        let lyrics = activeLyrics.values();
+        let animText = undefined;
+        for (let line of lyrics) {
+          for (let word of line) {
+            if (word.textFabricObject === text) {
+              animText = word;
+              break;
+            }
+          }
+        }
+        if (animText == undefined) {
+          console.warn("[canvasSetup] cannot find this text object");
+          return;
+        }
+        setPropsToAnimText(animText, text);
+        canvas.renderAll();
+      } else if (target.type === "activeselection") {
+        // NOTE: here, I get these objects by getting "_objects", which is NOT specified in the fabric.js documentation. They are REALLY BAD! -- GEORGE
+        target.get("_objects").forEach((obj: FabricObject) => {
+          let text = obj as fabric.Text;
+          let lyrics = activeLyrics.values();
+          let animText = undefined;
+          for (let line of lyrics) {
+            for (let word of line) {
+              if (word.textFabricObject === text) {
+                animText = word;
+                break;
+              }
+            }
+          }
+          if (animText == undefined) {
+            console.warn("[canvasSetup] cannot find this text object");
+            return;
+          }
+          console.log(
+            "This text is: ",
+            text.text,
+            " and it's left top is:",
+            text.left,
+            text.top,
+            " while animtext's left top is: ",
+            animText.props.left,
+            animText.props.top,
+            " while this target's left top is: ",
+            target.left,
+            target.top
+          );
+          let realLeft = target.left + text.left;
+          let realTop = target.top + text.top;
+          animText.props.left = realLeft;
+          animText.props.top = realTop;
+          animText.props.defaultScaleX = text.scaleX!;
+          animText.props.defaultScaleY = text.scaleY!;
+          canvas.renderAll();
+        });
       }
     });
   }

@@ -51,8 +51,6 @@ export function renderText_LetterWise(
       opacity: 1,
     });
     text.set({
-      defaultLeft: text.left,
-      defaultTop: text.top,
       defaultScaleX: defaultScaleX ? defaultScaleX : 1,
       defaultScaleY: defaultScaleY ? defaultScaleY : 1,
       scaleX: defaultScaleX ? defaultScaleX : 1,

@@ -290,8 +290,8 @@ export function animateText_LetterWise(
     }
     // each item should be a letter (fabric.Text)
     let item = group.item(index) as fabric.FabricText;
-    let left = item.defaultLeft!;
-    let top = item.defaultTop!;
+    let left = item.left!;
+    let top = item.top!;
     let scaleX = props.defaultScaleX
       ? props.defaultScaleX
       : item.defaultScaleX!;
@@ -397,8 +397,8 @@ export function animateText(
 ) {
   let starttime = text.get("starttime") || 0;
   let item = text;
-  let left = item.defaultLeft!;
-  let top = item.defaultTop!;
+  let left = text.left!;
+  let top = text.top!;
   let scaleX = props.defaultScaleX ? props.defaultScaleX : item.defaultScaleX!;
   let scaleY = props.defaultScaleY ? props.defaultScaleY : item.defaultScaleY!;
   var duration = animationDuration ? animationDuration : props.duration;
