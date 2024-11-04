@@ -125,6 +125,17 @@ export default function WidgetPanel({
       ...prev,
       [lineIndex]: instrument,
     }));
+    // apply the instrument to the line
+    let changedLine = getLineFromIndex(lineIndex);
+    if (!changedLine) {
+      console.warn(
+        `[handleInstrumentChange] Line ${lineIndex} not found in the active lyrics map.`
+      );
+      return;
+    }
+    changedLine.forEach((animatedText) => {
+      animatedText.applyInstrument(instrument);
+    });
   };
 
   const handleLyricalInstrumentApply = (

@@ -11,10 +11,15 @@ import {
   ListItemButton,
   ListItemText,
   FormGroup,
-  FormControl,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
   InputLabel,
-  MenuItem,
   Select,
+  MenuItem,
+  FormControl,
 } from "@mui/material";
 import {
   globalRegulator,
@@ -38,6 +43,17 @@ export interface InstrumentSettings {
   sizeScaleFactor?: number;
   animationSpeedFactor?: number;
   selectedAnimation?: string;
+  functions?: InstrumentFunction[]; // For custom instruments
+}
+
+interface CustomInstrument {
+  name: string;
+  functions: InstrumentFunction[];
+}
+
+interface InstrumentFunction {
+  type: string; // 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'
+  settings: any; // Settings specific to the function, will be in form of { 'boldThreshold': 0.5 }
 }
 
 export default function LyricalInstrumentsTab({
@@ -52,15 +68,145 @@ export default function LyricalInstrumentsTab({
     boldThreshold: globalRegulator.impBoldThreshold,
     sizeScaleFactor: globalRegulator.impEnlargeFactor,
     animationSpeedFactor: globalRegulator.impAnimSlowFactor,
-    selectedAnimation: AnimationPresets[0], // New state for selected animation
+    selectedAnimation: AnimationPresets[0],
   });
-  const [selectedAnimation, setSelectedAnimation] = useState<string>("");
+  const [customInstruments, setCustomInstruments] = useState<
+    CustomInstrument[]
+  >([]);
+  const [showCreateInstrument, setShowCreateInstrument] = useState(false);
+  const [isEditingInstrument, setIsEditingInstrument] = useState(false);
+  const [newInstrumentName, setNewInstrumentName] = useState("");
+  const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
+  const [newInstrumentSettings, setNewInstrumentSettings] = useState<any>({});
+  const [instrumentToEdit, setInstrumentToEdit] =
+    useState<CustomInstrument | null>(null);
 
   // Handle instrument selection from the left menu
   const handleInstrumentSelect = (instrumentValue: string) => {
     setSelectedInstrument(instrumentValue);
     // Reset selected lines when instrument changes
     setSelectedLines([]);
+    // Reset settings
+    setSettings({});
+
+    // Check if it's a custom instrument
+    const customInstrument = customInstruments.find(
+      (inst) => inst.name === instrumentValue
+    );
+    if (customInstrument) {
+      // Set settings based on custom instrument functions
+      let initialSettings: InstrumentSettings = {
+        functions: customInstrument.functions,
+      };
+      customInstrument.functions.forEach((func) => {
+        (initialSettings as any)[func.type] = func.settings; // to muffle TS error
+      });
+      setSettings(initialSettings);
+    } else {
+      // Handle predefined instruments
+      // Set default settings based on the instrument
+      if (instrumentValue === "boldThreshold") {
+        setSettings({
+          boldThreshold: globalRegulator.impBoldThreshold,
+          selectedAnimation: AnimationPresets[0],
+        });
+      } else if (instrumentValue === "sizeScaling") {
+        setSettings({
+          sizeScaleFactor: globalRegulator.impEnlargeFactor,
+          selectedAnimation: AnimationPresets[0],
+        });
+      } else if (instrumentValue === "animationSpeedScaling") {
+        setSettings({
+          animationSpeedFactor: globalRegulator.impAnimSlowFactor,
+          selectedAnimation: AnimationPresets[0],
+        });
+      }
+    }
+  };
+
+  const handleAddInstrument = () => {
+    setIsEditingInstrument(false);
+    setNewInstrumentName("");
+    setSelectedFunctions([]);
+    setNewInstrumentSettings({});
+    setShowCreateInstrument(true);
+  };
+
+  const handleEditInstrument = (instrument: CustomInstrument) => {
+    setIsEditingInstrument(true);
+    setInstrumentToEdit(instrument);
+    setNewInstrumentName(instrument.name);
+    setSelectedFunctions(instrument.functions.map((func) => func.type));
+    const settings = {} as any;
+    instrument.functions.forEach((func) => {
+      settings[func.type] = func.settings;
+    });
+    setNewInstrumentSettings(settings);
+    setShowCreateInstrument(true);
+  };
+
+  const handleDeleteInstrument = (instrumentName: string) => {
+    setCustomInstruments((prevInstruments) =>
+      prevInstruments.filter((inst) => inst.name !== instrumentName)
+    );
+    if (selectedInstrument === instrumentName) {
+      setSelectedInstrument("");
+      setSettings({});
+      setSelectedLines([]);
+    }
+  };
+
+  const handleFunctionToggle = (funcValue: string) => {
+    if (selectedFunctions.includes(funcValue)) {
+      setSelectedFunctions(selectedFunctions.filter((f) => f !== funcValue));
+      const newSettings = { ...newInstrumentSettings };
+      delete newSettings[funcValue];
+      setNewInstrumentSettings(newSettings);
+    } else {
+      setSelectedFunctions([...selectedFunctions, funcValue]);
+    }
+  };
+
+  const handleCreateInstrument = () => {
+    if (!newInstrumentName.trim()) {
+      alert("Instrument name cannot be empty.");
+      return;
+    }
+
+    // Check for duplicate names
+    const duplicate = customInstruments.some(
+      (inst) => inst.name === newInstrumentName && inst !== instrumentToEdit
+    );
+    if (duplicate) {
+      alert("An instrument with this name already exists.");
+      return;
+    }
+
+    const newInstrument: CustomInstrument = {
+      name: newInstrumentName,
+      functions: selectedFunctions.map((funcType) => ({
+        type: funcType,
+        settings: newInstrumentSettings[funcType],
+      })),
+    };
+
+    if (isEditingInstrument && instrumentToEdit) {
+      // Update existing instrument
+      setCustomInstruments((prevInstruments) =>
+        prevInstruments.map((inst) =>
+          inst.name === instrumentToEdit.name ? newInstrument : inst
+        )
+      );
+    } else {
+      // Add new instrument
+      setCustomInstruments([...customInstruments, newInstrument]);
+    }
+
+    setShowCreateInstrument(false);
+    setNewInstrumentName("");
+    setSelectedFunctions([]);
+    setNewInstrumentSettings({});
+    setInstrumentToEdit(null);
   };
 
   // Handle line selection checkboxes
@@ -122,8 +268,153 @@ export default function LyricalInstrumentsTab({
               </ListItemButton>
             </ListItem>
           ))}
+
+          {/* Custom Instruments */}
+          {customInstruments.map((instrument, index) => (
+            <ListItem
+              key={`custom-${index}`}
+              disablePadding
+              selected={selectedInstrument === instrument.name}
+              secondaryAction={
+                <>
+                  <Button
+                    size="small"
+                    onClick={() => handleEditInstrument(instrument)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => handleDeleteInstrument(instrument.name)}
+                  >
+                    Delete
+                  </Button>
+                </>
+              }
+            >
+              <ListItemButton
+                onClick={() => handleInstrumentSelect(instrument.name)}
+              >
+                <ListItemText primary={instrument.name} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+
+          {/* Add Instrument Button */}
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={handleAddInstrument}
+            style={{ margin: "16px" }}
+          >
+            Add Instrument
+          </Button>
         </List>
       </Box>
+
+      {/* Add Instrument Dialog */}
+      {showCreateInstrument && (
+        <Dialog
+          open={showCreateInstrument}
+          onClose={() => setShowCreateInstrument(false)}
+        >
+          <DialogTitle>
+            {isEditingInstrument ? "Edit Instrument" : "Create New Instrument"}
+          </DialogTitle>
+          <DialogContent>
+            {/* Instrument Name */}
+            <TextField
+              label="Instrument Name"
+              value={newInstrumentName}
+              onChange={(e) => setNewInstrumentName(e.target.value)}
+              fullWidth
+              margin="dense"
+            />
+
+            {/* Function Selection */}
+            <Typography variant="subtitle1" marginTop={2}>
+              Select Functions:
+            </Typography>
+            <FormGroup>
+              {InstrumentList.map((func) => (
+                <FormControlLabel
+                  key={func.value}
+                  control={
+                    <Checkbox
+                      checked={selectedFunctions.includes(func.value)}
+                      onChange={() => handleFunctionToggle(func.value)}
+                    />
+                  }
+                  label={func.name}
+                />
+              ))}
+            </FormGroup>
+
+            {/* Customization Controls for Selected Functions */}
+            {selectedFunctions.includes("sizeScaling") && (
+              <Box marginTop={2}>
+                <Typography>Size Scale Factor</Typography>
+                <Slider
+                  value={newInstrumentSettings.sizeScaling || 1}
+                  onChange={(e, value) =>
+                    setNewInstrumentSettings({
+                      ...newInstrumentSettings,
+                      sizeScaling: value as number,
+                    })
+                  }
+                  min={1}
+                  max={3}
+                  step={0.1}
+                />
+              </Box>
+            )}
+
+            {selectedFunctions.includes("boldThreshold") && (
+              <Box marginTop={2}>
+                <Typography>Bold Threshold</Typography>
+                <Slider
+                  value={newInstrumentSettings.boldThreshold || 0.5}
+                  onChange={(e, value) =>
+                    setNewInstrumentSettings({
+                      ...newInstrumentSettings,
+                      boldThreshold: value as number,
+                    })
+                  }
+                  min={0}
+                  max={1}
+                  step={0.01}
+                />
+              </Box>
+            )}
+
+            {selectedFunctions.includes("animationSpeedScaling") && (
+              <Box marginTop={2}>
+                <Typography>Animation Speed Factor</Typography>
+                <Slider
+                  value={newInstrumentSettings.animationSpeedFactor || 1}
+                  onChange={(e, value) =>
+                    setNewInstrumentSettings({
+                      ...newInstrumentSettings,
+                      animationSpeedFactor: value as number,
+                    })
+                  }
+                  min={0.1}
+                  max={2}
+                  step={0.01}
+                />
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowCreateInstrument(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateInstrument}>
+              {isEditingInstrument ? "Save Changes" : "Create"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
 
       {/* Right side with customization panel */}
       <Box width="70%" padding="16px">
@@ -131,10 +422,8 @@ export default function LyricalInstrumentsTab({
           <>
             <Typography variant="h5">
               Configure{" "}
-              {
-                InstrumentList.find((inst) => inst.value === selectedInstrument)
-                  ?.name
-              }
+              {InstrumentList.find((inst) => inst.value === selectedInstrument)
+                ?.name || selectedInstrument}
             </Typography>
 
             {/* Dynamic Controls Based on Selected Instrument */}
@@ -203,6 +492,56 @@ export default function LyricalInstrumentsTab({
                 />
               </Box>
             )}
+
+            {/* Custom Instruments */}
+            {customInstruments.find(
+              (inst) => inst.name === selectedInstrument
+            ) &&
+              settings.functions?.map((func) => {
+                if (func.type === "sizeScaling") {
+                  return (
+                    <Box marginTop={2} key="sizeScaling">
+                      <Typography>Size Scale Factor</Typography>
+                      <Slider
+                        value={settings.sizeScaleFactor || 1}
+                        onChange={handleSliderChange("sizeScaleFactor")}
+                        min={1}
+                        max={3}
+                        step={0.1}
+                      />
+                    </Box>
+                  );
+                }
+                if (func.type === "boldThreshold") {
+                  return (
+                    <Box marginTop={2} key="boldThreshold">
+                      <Typography>Bold Threshold</Typography>
+                      <Slider
+                        value={settings.boldThreshold || 0.5}
+                        onChange={handleSliderChange("boldThreshold")}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                      />
+                    </Box>
+                  );
+                }
+                if (func.type === "animationSpeedScaling") {
+                  return (
+                    <Box marginTop={2} key="animationSpeedScaling">
+                      <Typography>Animation Speed Factor</Typography>
+                      <Slider
+                        value={settings.animationSpeedFactor || 1}
+                        onChange={handleSliderChange("animationSpeedFactor")}
+                        min={0.1}
+                        max={2}
+                        step={0.01}
+                      />
+                    </Box>
+                  );
+                }
+                return null;
+              })}
 
             {/* Select Animation Dropdown */}
             <FormControl fullWidth variant="outlined" margin="normal">
