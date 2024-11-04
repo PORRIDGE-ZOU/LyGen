@@ -10,6 +10,10 @@ import * as fabric from "fabric";
 import { FabricObject, FabricText } from "fabric";
 import { LerpImportance, renderText, setText } from "../textRendering";
 import { AnimationProps } from "../types/index";
+import {
+  CustomInstrument,
+  InstrumentSettings,
+} from "@/components/LyricalInstrumentTab";
 
 /**
  * A class for text with letter-wise animations.
@@ -39,6 +43,7 @@ export class AnimatedText extends FabricObject {
     this._importance = Math.max(0, Math.min(1, value));
   }
   instrument: string = "";
+  customInstrument?: CustomInstrument;
 
   constructor(
     text: string,
@@ -56,7 +61,6 @@ export class AnimatedText extends FabricObject {
       this.duration = this.calcDurationFromImportance();
     } else {
       this.importance = 0.5;
-      this.duration = 100;
       console.warn(
         "Importance not set for AnimatedText. Defaulting to 0.5. text: ",
         text
@@ -213,14 +217,21 @@ export class AnimatedText extends FabricObject {
   }
 
   /** Set Instrument, THEN REFRESH. */
-  applyInstrument(instrument: string) {
+  applyInstrument(instrument: string, custom?: CustomInstrument) {
     this.instrument = instrument;
+    if (custom) {
+      this.customInstrument = custom;
+    }
     this.refresh();
   }
 
   calcDurationFromImportance() {
     let scaleFactor = globalRegulator.impAnimSlowFactor;
-    let lerpscale = LerpImportance(500, scaleFactor, this.importance);
+    let lerpscale = LerpImportance(
+      globalRegulator.defaultAnimDuration,
+      scaleFactor,
+      this.importance
+    );
     return lerpscale;
   }
 
@@ -275,6 +286,26 @@ export class AnimatedText extends FabricObject {
       }
     } else if (this.instrument === "animationSpeedScaling") {
       duration = this.calcDurationFromImportance();
+    } else if (
+      this.customInstrument &&
+      this.instrument == this.customInstrument.name
+    ) {
+      this.customInstrument.functions.forEach((func) => {
+        if (func.type === "sizeScaling") {
+          scaleFactor = func.settings;
+          scaleFactor = LerpImportance(1, scaleFactor, this.importance);
+        } else if (func.type === "boldThreshold") {
+          if (this.importance >= func.settings) {
+            shouldBold = true;
+          }
+        } else if (func.type === "animationSpeedScaling") {
+          duration = LerpImportance(
+            globalRegulator.defaultAnimDuration,
+            func.settings,
+            this.importance
+          );
+        }
+      });
     }
 
     // No matter what, reset all the properties

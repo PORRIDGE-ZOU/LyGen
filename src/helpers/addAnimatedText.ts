@@ -21,7 +21,7 @@ export function addAnimatedText(
       typeAnim: "word",
       order: "forward",
       fontFamily: globalRegulator.defaultFont,
-      duration: 500, // TODO: THIS IS THE DURATION FOR ANIMATION -- GEORGE
+      duration: globalRegulator.defaultAnimDuration,
       easing: "easeInQuad",
       fill: "#ffffff",
       scaleX: 1,

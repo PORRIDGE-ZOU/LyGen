@@ -38,6 +38,7 @@ interface LyricalInstrumentsTabProps {
   onChangeCustomInstruments: (instruments: CustomInstrument[]) => void;
   lineInstruments: { [key: number]: string };
   lyrics: string[][];
+  customInstruments: CustomInstrument[];
 }
 
 export interface InstrumentSettings {
@@ -53,9 +54,13 @@ export interface CustomInstrument {
   functions: InstrumentFunction[];
 }
 
-interface InstrumentFunction {
-  type: string; // 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'
-  settings: any; // Settings specific to the function, will be in form of { 'boldThreshold': 0.5 }
+export interface InstrumentFunction {
+  /**
+   * Type of the function, SHOULD FOLLOW THE Instrument Value naming
+   * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'
+   */
+  type: string;
+  settings: any; // Value of this type
 }
 
 export default function LyricalInstrumentsTab({
@@ -64,6 +69,7 @@ export default function LyricalInstrumentsTab({
   onChangeCustomInstruments,
   lineInstruments,
   lyrics,
+  customInstruments,
 }: LyricalInstrumentsTabProps) {
   const [selectedInstrument, setSelectedInstrument] = useState<string>("");
   const [selectedLines, setSelectedLines] = useState<number[]>([]);
@@ -73,29 +79,37 @@ export default function LyricalInstrumentsTab({
     animationSpeedFactor: globalRegulator.impAnimSlowFactor,
     selectedAnimation: AnimationPresets[0],
   });
-  const [customInstruments, setCustomInstruments] = useState<
-    CustomInstrument[]
-  >(() => {
-    // Retrieve saved custom instruments from localStorage when component mounts
-    const savedInstruments = localStorage.getItem("customInstruments");
-    return savedInstruments ? JSON.parse(savedInstruments) : [];
-  });
+  // const [customInstruments, setCustomInstruments] = useState<
+  //   CustomInstrument[]
+  // >(() => {
+  //   // Retrieve saved custom instruments from localStorage when component mounts
+  //   const savedInstruments = localStorage.getItem("customInstruments");
+  //   return savedInstruments ? JSON.parse(savedInstruments) : [];
+  // });
   const [showCreateInstrument, setShowCreateInstrument] = useState(false);
   const [isEditingInstrument, setIsEditingInstrument] = useState(false);
   const [newInstrumentName, setNewInstrumentName] = useState("");
+
   const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
+  /**
+   * Instrument Settings, SHOULD FOLLOW The Instrument Value naming
+   */
   const [newInstrumentSettings, setNewInstrumentSettings] = useState<any>({});
   const [instrumentToEdit, setInstrumentToEdit] =
     useState<CustomInstrument | null>(null);
+  const combinedInstrumentList = [
+    ...DefaultInstrumentList,
+    ...customInstruments,
+  ];
 
-  useEffect(() => {
-    onChangeCustomInstruments(customInstruments);
-    // TODO: Will this work as expected? Like when I close page and open again, will it load the custom instruments? ACROSS the website, i mean, also to the other pages? -- GEORGE
-    localStorage.setItem(
-      "customInstruments",
-      JSON.stringify(customInstruments)
-    );
-  }, [customInstruments, onChangeCustomInstruments]);
+  // useEffect(() => {
+  //   onChangeCustomInstruments(customInstruments);
+  //   // TODO: Will this work as expected? Like when I close page and open again, will it load the custom instruments? ACROSS the website, i mean, also to the other pages? -- GEORGE
+  //   localStorage.setItem(
+  //     "customInstruments",
+  //     JSON.stringify(customInstruments)
+  //   );
+  // }, [customInstruments, onChangeCustomInstruments]);
 
   // Handle instrument selection from the left menu
   const handleInstrumentSelect = (instrumentValue: string) => {
@@ -115,7 +129,14 @@ export default function LyricalInstrumentsTab({
         functions: customInstrument.functions,
       };
       customInstrument.functions.forEach((func) => {
-        (initialSettings as any)[func.type] = func.settings; // to muffle TS error
+        console.log("func", func);
+        if (func.type === "sizeScaling") {
+          initialSettings.sizeScaleFactor = func.settings;
+        } else if (func.type === "boldThreshold") {
+          initialSettings.boldThreshold = func.settings;
+        } else if (func.type === "animationSpeedScaling") {
+          initialSettings.animationSpeedFactor = func.settings;
+        }
       });
       setSettings(initialSettings);
     } else {
@@ -162,9 +183,13 @@ export default function LyricalInstrumentsTab({
   };
 
   const handleDeleteInstrument = (instrumentName: string) => {
-    setCustomInstruments((prevInstruments) =>
-      prevInstruments.filter((inst) => inst.name !== instrumentName)
+    let newInstruments = customInstruments.filter(
+      (inst) => inst.name !== instrumentName
     );
+    // setCustomInstruments((prevInstruments) =>
+    //   prevInstruments.filter((inst) => inst.name !== instrumentName)
+    // );
+    onChangeCustomInstruments(newInstruments);
     if (selectedInstrument === instrumentName) {
       setSelectedInstrument("");
       setSettings({});
@@ -179,7 +204,17 @@ export default function LyricalInstrumentsTab({
       delete newSettings[funcValue];
       setNewInstrumentSettings(newSettings);
     } else {
+      console.log("funcValue", funcValue);
       setSelectedFunctions([...selectedFunctions, funcValue]);
+      const newSettings = { ...newInstrumentSettings };
+      if (funcValue === "sizeScaling") {
+        newSettings.sizeScaling = 1;
+      } else if (funcValue === "boldThreshold") {
+        newSettings.boldThreshold = 0.5;
+      } else if (funcValue === "animationSpeedScaling") {
+        newSettings.animationSpeedScaling = 1;
+      }
+      setNewInstrumentSettings(newSettings);
     }
   };
 
@@ -205,19 +240,29 @@ export default function LyricalInstrumentsTab({
         settings: newInstrumentSettings[funcType],
       })),
     };
+    console.log("[handleCreateIns] selectedFunctions", selectedFunctions);
+    console.log(
+      "[handleCreateIns] newInstrumentSettings",
+      newInstrumentSettings
+    );
 
     if (isEditingInstrument && instrumentToEdit) {
       // Update existing instrument
-      setCustomInstruments((prevInstruments) =>
-        prevInstruments.map((inst) =>
-          inst.name === instrumentToEdit.name ? newInstrument : inst
-        )
+      // setCustomInstruments((prevInstruments) =>
+      //   prevInstruments.map((inst) =>
+      //     inst.name === instrumentToEdit.name ? newInstrument : inst
+      //   )
+      // );
+      let currentInstruments = customInstruments.map((inst) =>
+        inst.name === instrumentToEdit.name ? newInstrument : inst
       );
+      onChangeCustomInstruments(currentInstruments);
     } else {
       // Add new instrument
       let currentInstruments = [...customInstruments];
       currentInstruments.push(newInstrument);
-      setCustomInstruments(currentInstruments);
+      // setCustomInstruments(currentInstruments);
+      onChangeCustomInstruments(currentInstruments);
     }
 
     setShowCreateInstrument(false);
@@ -245,6 +290,28 @@ export default function LyricalInstrumentsTab({
         ...settings,
         [setting]: value as number,
       });
+
+      // check if it's a custom instrument
+      if (customInstruments.find((inst) => inst.name === selectedInstrument)) {
+        let custom = customInstruments.find(
+          (inst) => inst.name === selectedInstrument
+        );
+        custom?.functions.forEach((func) => {
+          if (func.type === "boldThreshold" && setting === "boldThreshold") {
+            func.settings = value as number;
+          } else if (
+            func.type === "sizeScaling" &&
+            setting === "sizeScaleFactor"
+          ) {
+            func.settings = value as number;
+          } else if (
+            func.type === "animationSpeedScaling" &&
+            setting === "animationSpeedFactor"
+          ) {
+            func.settings = value as number;
+          }
+        });
+      }
     };
 
   const handleAnimationSelect = (event: { target: { value: string } }) => {
@@ -273,45 +340,44 @@ export default function LyricalInstrumentsTab({
       {/* Left side with instruments list */}
       <Box width="30%" borderRight="1px solid #ccc">
         <List component="nav">
-          {DefaultInstrumentList.map((instrument) => (
+          {combinedInstrumentList.map((instrument, index) => (
             <ListItem
-              key={instrument.value}
+              key={"value" in instrument ? instrument.value : instrument.name}
               disablePadding
-              selected={selectedInstrument === instrument.value}
-            >
-              <ListItemButton
-                onClick={() => handleInstrumentSelect(instrument.value)}
-              >
-                <ListItemText primary={instrument.name} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-
-          {/* Custom Instruments */}
-          {customInstruments.map((instrument, index) => (
-            <ListItem
-              key={`custom-${index}`}
-              disablePadding
-              selected={selectedInstrument === instrument.name}
+              selected={
+                selectedInstrument ===
+                ("value" in instrument ? instrument.value : instrument.name)
+              }
               secondaryAction={
-                <>
-                  <Button
-                    size="small"
-                    onClick={() => handleEditInstrument(instrument)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={() => handleDeleteInstrument(instrument.name)}
-                  >
-                    Delete
-                  </Button>
-                </>
+                !DefaultInstrumentList.find(
+                  (item) =>
+                    "value" in instrument && item.value === instrument.value
+                ) && (
+                  <>
+                    <Button
+                      size="small"
+                      onClick={() =>
+                        handleEditInstrument(instrument as CustomInstrument)
+                      }
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => handleDeleteInstrument(instrument.name)}
+                    >
+                      Delete
+                    </Button>
+                  </>
+                )
               }
             >
               <ListItemButton
-                onClick={() => handleInstrumentSelect(instrument.name)}
+                onClick={() =>
+                  handleInstrumentSelect(
+                    "value" in instrument ? instrument.value : instrument.name
+                  )
+                }
               >
                 <ListItemText primary={instrument.name} />
               </ListItemButton>
@@ -392,12 +458,12 @@ export default function LyricalInstrumentsTab({
                 <Typography>Bold Threshold</Typography>
                 <Slider
                   value={newInstrumentSettings.boldThreshold || 0.5}
-                  onChange={(e, value) =>
+                  onChange={(e, value) => {
                     setNewInstrumentSettings({
                       ...newInstrumentSettings,
                       boldThreshold: value as number,
-                    })
-                  }
+                    });
+                  }}
                   min={0}
                   max={1}
                   step={0.01}
@@ -409,11 +475,11 @@ export default function LyricalInstrumentsTab({
               <Box marginTop={2}>
                 <Typography>Animation Speed Factor</Typography>
                 <Slider
-                  value={newInstrumentSettings.animationSpeedFactor || 1}
+                  value={newInstrumentSettings.animationSpeedScaling || 1}
                   onChange={(e, value) =>
                     setNewInstrumentSettings({
                       ...newInstrumentSettings,
-                      animationSpeedFactor: value as number,
+                      animationSpeedScaling: value as number,
                     })
                   }
                   min={0.1}
@@ -491,9 +557,9 @@ export default function LyricalInstrumentsTab({
             {selectedInstrument === "animationSpeedScaling" && (
               <Box marginTop={2}>
                 <Typography variant="h6">
-                  Slow down the animation speed based on the importance of the
+                  Speed up the animation speed based on the importance of the
                   word, such that if the importance is 1, the word will be
-                  animated at 100% * speed factor.
+                  animated at original speed * speed factor.
                 </Typography>
                 <Typography>
                   Speed Factor: {settings.animationSpeedFactor}

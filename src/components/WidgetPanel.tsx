@@ -30,6 +30,9 @@ export default function WidgetPanel({
   }>({});
   const [instrumentSettings, setInstrumentSettings] =
     useState<InstrumentSettings>({});
+  const [customInstruments, setCustomInstruments] = useState<
+    CustomInstrument[]
+  >([]);
 
   const lyricsAvailable =
     currentLyrics && currentLyrics.length > 0 && currentLyrics[0].length;
@@ -139,7 +142,11 @@ export default function WidgetPanel({
       return;
     }
     changedLine.forEach((animatedText) => {
-      animatedText.applyInstrument(instrument);
+      // see if instrument is custom
+      const customInstrument = customInstruments.find(
+        (item) => item.name === instrument
+      );
+      animatedText.applyInstrument(instrument, customInstrument);
     });
   };
 
@@ -148,9 +155,12 @@ export default function WidgetPanel({
     settings: InstrumentSettings,
     selectedLines: number[]
   ) => {
-    if (!InstrumentList.find((item) => item.value === instrument)) {
-      console.log(
-        `[handleLyricalInstrumentApply] Instrument ${instrument} not found in the InstrumentList.`
+    // Combine default and custom instruments
+    const allInstruments = [...InstrumentList];
+
+    if (!allInstruments.find((item) => item.value === instrument)) {
+      console.warn(
+        `[handleLyricalInstrumentApply] Instrument ${instrument} not found in the instrument list.`
       );
       return;
     }
@@ -170,6 +180,46 @@ export default function WidgetPanel({
       return updatedLineInstruments;
     });
 
+    // Apply the instrument logic based on the selected instrument
+    if (
+      instrument === "boldThreshold" &&
+      settings.boldThreshold !== undefined
+    ) {
+      // Apply bold threshold logic
+      globalRegulator.impBoldThreshold = settings.boldThreshold;
+    }
+    if (
+      instrument === "sizeScaling" &&
+      settings.sizeScaleFactor !== undefined
+    ) {
+      // Apply size scaling logic
+      globalRegulator.impEnlargeFactor = settings.sizeScaleFactor;
+    }
+    if (
+      instrument === "animationSpeedScaling" &&
+      settings.animationSpeedFactor !== undefined
+    ) {
+      // Apply animation speed scaling logic
+      globalRegulator.impAnimSlowFactor = settings.animationSpeedFactor;
+    }
+    let customFunctions = settings.functions;
+    // Apply custom functions
+    if (customFunctions) {
+      customFunctions.forEach((customFunction) => {
+        console.log("Found custom function:", customFunction);
+        // Apply custom function logic
+        if (customFunction.type === "boldThreshold") {
+          globalRegulator.impBoldThreshold = customFunction.settings as number;
+        }
+        if (customFunction.type === "sizeScaling") {
+          globalRegulator.impEnlargeFactor = customFunction.settings as number;
+        }
+        if (customFunction.type === "animationSpeedScaling") {
+          globalRegulator.impAnimSlowFactor = customFunction.settings as number;
+        }
+      });
+    }
+
     // Apply the settings to the selected lines
     selectedLines.forEach((lineIndex) => {
       const line = getLineFromIndex(lineIndex);
@@ -178,35 +228,12 @@ export default function WidgetPanel({
         if (settings.selectedAnimation !== undefined) {
           handleAnimationChange(lineIndex, settings.selectedAnimation);
         }
-
         line.forEach((animatedText) => {
-          // Apply the instrument logic based on the selected instrument
-          if (
-            instrument === "boldThreshold" &&
-            settings.boldThreshold !== undefined
-          ) {
-            // Apply bold threshold logic
-            globalRegulator.impBoldThreshold = settings.boldThreshold;
-          }
-
-          if (
-            instrument === "sizeScaling" &&
-            settings.sizeScaleFactor !== undefined
-          ) {
-            // Apply size scaling logic
-            globalRegulator.impEnlargeFactor = settings.sizeScaleFactor;
-          }
-
-          if (
-            instrument === "animationSpeedScaling" &&
-            settings.animationSpeedFactor !== undefined
-          ) {
-            // Apply animation speed scaling logic
-            globalRegulator.impAnimSlowFactor = settings.animationSpeedFactor;
-          }
-
           // Refresh the animated text to apply changes
-          animatedText.applyInstrument(instrument);
+          const customInstrument = customInstruments.find(
+            (item) => item.name === instrument
+          );
+          animatedText.applyInstrument(instrument, customInstrument);
         });
       }
     });
@@ -271,6 +298,7 @@ export default function WidgetPanel({
 
   const handleCustomInstrumentChange = (instruments: CustomInstrument[]) => {
     console.log("[handleCustomInstrumentChange] instruments", instruments);
+    setCustomInstruments(instruments);
     // Add missing instruments
     for (let i = 0; i < instruments.length; i++) {
       let instrument = instruments[i];
@@ -342,6 +370,7 @@ export default function WidgetPanel({
             onChangeCustomInstruments={handleCustomInstrumentChange}
             lineInstruments={lineInstruments}
             lyrics={currentLyrics}
+            customInstruments={customInstruments}
           />
         )}
         {activeTab === 2 && (
