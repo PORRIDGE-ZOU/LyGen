@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -25,6 +25,7 @@ import {
   globalRegulator,
   InstrumentList,
   AnimationPresets,
+  DefaultInstrumentList,
 } from "@/helpers/globals";
 
 interface LyricalInstrumentsTabProps {
@@ -34,6 +35,7 @@ interface LyricalInstrumentsTabProps {
     selectedLines: number[]
   ) => void;
   onReset: (instrument: string, selectedLines: number[]) => void;
+  onChangeCustomInstruments: (instruments: CustomInstrument[]) => void;
   lineInstruments: { [key: number]: string };
   lyrics: string[][];
 }
@@ -43,10 +45,10 @@ export interface InstrumentSettings {
   sizeScaleFactor?: number;
   animationSpeedFactor?: number;
   selectedAnimation?: string;
-  functions?: InstrumentFunction[]; // For custom instruments
+  functions?: InstrumentFunction[]; // JUST for custom instruments
 }
 
-interface CustomInstrument {
+export interface CustomInstrument {
   name: string;
   functions: InstrumentFunction[];
 }
@@ -59,6 +61,7 @@ interface InstrumentFunction {
 export default function LyricalInstrumentsTab({
   onApply,
   onReset,
+  onChangeCustomInstruments,
   lineInstruments,
   lyrics,
 }: LyricalInstrumentsTabProps) {
@@ -72,7 +75,11 @@ export default function LyricalInstrumentsTab({
   });
   const [customInstruments, setCustomInstruments] = useState<
     CustomInstrument[]
-  >([]);
+  >(() => {
+    // Retrieve saved custom instruments from localStorage when component mounts
+    const savedInstruments = localStorage.getItem("customInstruments");
+    return savedInstruments ? JSON.parse(savedInstruments) : [];
+  });
   const [showCreateInstrument, setShowCreateInstrument] = useState(false);
   const [isEditingInstrument, setIsEditingInstrument] = useState(false);
   const [newInstrumentName, setNewInstrumentName] = useState("");
@@ -80,6 +87,15 @@ export default function LyricalInstrumentsTab({
   const [newInstrumentSettings, setNewInstrumentSettings] = useState<any>({});
   const [instrumentToEdit, setInstrumentToEdit] =
     useState<CustomInstrument | null>(null);
+
+  useEffect(() => {
+    onChangeCustomInstruments(customInstruments);
+    // TODO: Will this work as expected? Like when I close page and open again, will it load the custom instruments? ACROSS the website, i mean, also to the other pages? -- GEORGE
+    localStorage.setItem(
+      "customInstruments",
+      JSON.stringify(customInstruments)
+    );
+  }, [customInstruments, onChangeCustomInstruments]);
 
   // Handle instrument selection from the left menu
   const handleInstrumentSelect = (instrumentValue: string) => {
@@ -199,7 +215,9 @@ export default function LyricalInstrumentsTab({
       );
     } else {
       // Add new instrument
-      setCustomInstruments([...customInstruments, newInstrument]);
+      let currentInstruments = [...customInstruments];
+      currentInstruments.push(newInstrument);
+      setCustomInstruments(currentInstruments);
     }
 
     setShowCreateInstrument(false);
@@ -255,7 +273,7 @@ export default function LyricalInstrumentsTab({
       {/* Left side with instruments list */}
       <Box width="30%" borderRight="1px solid #ccc">
         <List component="nav">
-          {InstrumentList.map((instrument) => (
+          {DefaultInstrumentList.map((instrument) => (
             <ListItem
               key={instrument.value}
               disablePadding
@@ -336,7 +354,7 @@ export default function LyricalInstrumentsTab({
               Select Functions:
             </Typography>
             <FormGroup>
-              {InstrumentList.map((func) => (
+              {DefaultInstrumentList.map((func) => (
                 <FormControlLabel
                   key={func.value}
                   control={
@@ -592,14 +610,14 @@ export default function LyricalInstrumentsTab({
               >
                 Apply
               </Button>
-              <Button
+              {/* <Button
                 variant="outlined"
                 color="secondary"
                 onClick={handleReset}
                 disabled={selectedLines.length === 0}
               >
                 Reset
-              </Button>
+              </Button> */}
             </Box>
           </>
         ) : (

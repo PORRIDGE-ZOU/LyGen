@@ -1,9 +1,14 @@
 import React, { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
 import ImportanceTab from "./ImportanceTab"; // Import the new component
-import { globalRegulator } from "@/helpers/globals";
+import {
+  DefaultInstrumentList,
+  globalRegulator,
+  InstrumentList,
+} from "@/helpers/globals";
 import { getLineFromIndex } from "@/helpers/misc";
 import LyricalInstrumentsTab, {
+  CustomInstrument,
   InstrumentSettings,
 } from "./LyricalInstrumentTab";
 
@@ -143,6 +148,13 @@ export default function WidgetPanel({
     settings: InstrumentSettings,
     selectedLines: number[]
   ) => {
+    if (!InstrumentList.find((item) => item.value === instrument)) {
+      console.log(
+        `[handleLyricalInstrumentApply] Instrument ${instrument} not found in the InstrumentList.`
+      );
+      return;
+    }
+
     // Update the instrument settings
     setInstrumentSettings((prevSettings) => ({
       ...prevSettings,
@@ -257,6 +269,35 @@ export default function WidgetPanel({
     );
   };
 
+  const handleCustomInstrumentChange = (instruments: CustomInstrument[]) => {
+    console.log("[handleCustomInstrumentChange] instruments", instruments);
+    // Add missing instruments
+    for (let i = 0; i < instruments.length; i++) {
+      let instrument = instruments[i];
+      if (
+        InstrumentList.find((item) => item.value === instrument.name) ===
+        undefined
+      ) {
+        InstrumentList.push({
+          name: instrument.name,
+          value: instrument.name,
+        });
+      }
+    }
+    // Remove instruments that are not in the list
+    InstrumentList.forEach((item, index) => {
+      if (DefaultInstrumentList.find((item) => item.value === item.value)) {
+        return;
+      }
+      if (
+        instruments.find((instrument) => instrument.name === item.value) ===
+        undefined
+      ) {
+        InstrumentList.splice(index, 1);
+      }
+    });
+  };
+
   return (
     <Box display="flex" height="100%">
       {/* Left side with Tabs */}
@@ -298,6 +339,7 @@ export default function WidgetPanel({
           <LyricalInstrumentsTab
             onApply={handleLyricalInstrumentApply}
             onReset={handleLyricalInstrumentReset}
+            onChangeCustomInstruments={handleCustomInstrumentChange}
             lineInstruments={lineInstruments}
             lyrics={currentLyrics}
           />

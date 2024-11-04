@@ -71,6 +71,13 @@ export const InstrumentList = [
   // Add more instruments as needed
 ];
 
+export const DefaultInstrumentList = [
+  { name: "Bold on Threshold", value: "boldThreshold" },
+  { name: "Size Scaling", value: "sizeScaling" },
+  { name: "Animation Speed Scaling", value: "animationSpeedScaling" },
+  // Add more instruments as needed
+];
+
 // make a global ticker to keep track of the current time and current index
 class GlobalRegulator {
   public static currentTime = 0;
