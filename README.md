@@ -26,3 +26,4 @@ Features:
 - You can seek a specific time in the video using the slider at the bottom left.
 - By selecting a line in the lyrics column to the top left, you can quickly seek that line in the video. You can also quickly seek by selecting a line in the Importance Curve tab.
 - By default, the importance curve does nothing. You need to apply specific "instruments" (aka styles) to lines in the Lyrical Instrument tab, where you can not only designate meanings to importance but also specify animations.
+- The text boxes on the canvas are selectable. You can rotate, scale, and move them around. You can also select a group of texts by dragging your mouse and then edit them in a group, just like what you'll do in other apps! Note that if you're selecting a group, the properties in the Information panel will be applied to the entire group, overriding all previous settings.
