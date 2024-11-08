@@ -37,6 +37,7 @@ const App = () => {
   const [fillcolor, setFillColor] = useState("#ffffff");
   const [activeXPos, setActiveXPos] = useState<number>(0);
   const [activeYPos, setActiveYPos] = useState<number>(0);
+  const [activeFont, setActiveFont] = useState<string>("Impact");
   const [lyrics, setLyrics] = useState<string>("Test Lyrics\nTest Lyrics2");
   const [lyrics_forWidget, setLyrics_forWidget] = useState<string[][]>([]);
   /** This is only used for rerendering GeneralPanel. */
@@ -123,6 +124,7 @@ const App = () => {
   function canvasSetup(canvas: fabric.Canvas) {
     canvas.on("selection:created", (e) => {
       let active = canvas.getActiveObject();
+      let selected = e.selected;
       if (!active) {
         return;
       }
@@ -150,7 +152,14 @@ const App = () => {
 
       let text = active?.get("text");
       if (text) {
-        console.log("[canvasSetup] active text: ", text);
+        console.log(
+          "[canvasSetup] selection created active text: ",
+          text,
+          "active font: ",
+          active?.get("fontFamily")
+        );
+        setActiveFont(active?.get("fontFamily")!);
+      } else {
       }
     });
 
@@ -276,6 +285,8 @@ const App = () => {
     // canvas?.discardActiveObject();
   }
 
+  function handleFontChange(font: string) {}
+
   const onChangeVideoDuration = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -391,6 +402,8 @@ const App = () => {
             onColorChange={onColorChange}
             text={fillcolor}
             onTextChange={setFillColor}
+            font={activeFont}
+            onFontChange={handleFontChange}
           ></InfoPanel>
         </Box>
       </Box>

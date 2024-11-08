@@ -36,4 +36,6 @@ yarn-error.log*
 next-env.d.ts
 
 ./musixmatch_token.json
-server/.syncedlyrics/musixmatch_token.json
+src/server/.syncedlyrics/musixmatch_token.json
+src/server/.syncedlyrics/api.txt
+src/server/.syncedlyrics/musixmatch_token.json
