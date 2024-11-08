@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-## Getting Started
+## Install the project
 
 First, run the development server:
 
@@ -16,6 +16,8 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# NOTE: To use the "Search Lyrics" function, you need to run the server file locally. Please refer to the "Use Server" section.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Run Locally
+
+In the test folder, you can find audio files (.mp3) with their lyrics (.lrc). Load in the audio first, then the lyrics using the Upload buttons. Wait for the lyrics to pop in until you see the Importance curve tab below appear, then you can start playing with the lyrics!
