@@ -27,6 +27,7 @@ import {
   AnimationPresets,
   DefaultInstrumentList,
 } from "@/helpers/globals";
+import ColorChangeCutpointsEditor from "./ColorChangeCutpointsEditor";
 
 interface LyricalInstrumentsTabProps {
   onApply: (
@@ -39,44 +40,69 @@ interface LyricalInstrumentsTabProps {
   lineInstruments: { [key: number]: string };
   lyrics: string[][];
   customInstruments: CustomInstrument[];
+  selectedInstrument: string;
+  setSelectedInstrument: React.Dispatch<React.SetStateAction<string>>;
+  instrumentSettings: { [instrument: string]: InstrumentSettings };
+  setInstrumentSettings: React.Dispatch<
+    React.SetStateAction<{ [instrument: string]: InstrumentSettings }>
+  >;
 }
 
+/**
+ * NOTE: the naming of InstrumentSettings is DIFFERENT from the Instrument Value naming.
+ * "boldThreshold", "sizeScaleFactor", "animationSpeedFactor".
+ */
 export interface InstrumentSettings {
   boldThreshold?: number;
   sizeScaleFactor?: number;
   animationSpeedFactor?: number;
   selectedAnimation?: string;
-  functions?: InstrumentFunction[]; // JUST for custom instruments
+  functions?: CustomFunction[]; // For custom instruments
+  colorChangeCutpoints?: ColorChangeCutpoint[]; // New property
+}
+
+export interface ColorChangeCutpoint {
+  threshold: number; // Importance threshold between 0 and 1
+  color: string; // Color in hex format
 }
 
 export interface CustomInstrument {
   name: string;
-  functions: InstrumentFunction[];
+  functions: CustomFunction[];
 }
 
-export interface InstrumentFunction {
-  /**
-   * Type of the function, SHOULD FOLLOW THE Instrument Value naming
-   * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'
-   */
+/**
+ * This is used for custom instruments.
+ * type: Type of the function, SHOULD FOLLOW THE Instrument Value naming
+ * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'.
+ * settings: Value of the function
+ */
+export interface CustomFunction {
   type: string;
-  settings: any; // Value of this type
+  value: any; // Value of this type
 }
 
-export default function LyricalInstrumentsTab({
-  onApply,
-  onReset,
-  onChangeCustomInstruments,
-  lineInstruments,
-  lyrics,
-  customInstruments,
-}: LyricalInstrumentsTabProps) {
-  const [selectedInstrument, setSelectedInstrument] = useState<string>("");
+export default function LyricalInstrumentsTab(
+  props: LyricalInstrumentsTabProps
+) {
+  const {
+    onApply,
+    onReset,
+    onChangeCustomInstruments,
+    lineInstruments,
+    lyrics,
+    customInstruments,
+    selectedInstrument,
+    setSelectedInstrument,
+    instrumentSettings,
+    setInstrumentSettings,
+  } = props;
   const [selectedLines, setSelectedLines] = useState<number[]>([]);
   const [settings, setSettings] = useState<InstrumentSettings>({
     boldThreshold: globalRegulator.impBoldThreshold,
     sizeScaleFactor: globalRegulator.impEnlargeFactor,
     animationSpeedFactor: globalRegulator.impAnimSlowFactor,
+    colorChangeCutpoints: globalRegulator.impColorChange,
     selectedAnimation: AnimationPresets[0],
   });
   // const [customInstruments, setCustomInstruments] = useState<
@@ -89,10 +115,10 @@ export default function LyricalInstrumentsTab({
   const [showCreateInstrument, setShowCreateInstrument] = useState(false);
   const [isEditingInstrument, setIsEditingInstrument] = useState(false);
   const [newInstrumentName, setNewInstrumentName] = useState("");
-
   const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
   /**
    * Instrument Settings, SHOULD FOLLOW The Instrument Value naming
+   * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'
    */
   const [newInstrumentSettings, setNewInstrumentSettings] = useState<any>({});
   const [instrumentToEdit, setInstrumentToEdit] =
@@ -110,55 +136,27 @@ export default function LyricalInstrumentsTab({
   //     JSON.stringify(customInstruments)
   //   );
   // }, [customInstruments, onChangeCustomInstruments]);
+  // Update settings when selectedInstrument changes
+  useEffect(() => {
+    setSettings(
+      instrumentSettings[selectedInstrument] ||
+        getDefaultSettings(selectedInstrument)
+    );
+  }, [selectedInstrument]);
 
-  // Handle instrument selection from the left menu
+  // Update instrumentSettings in WidgetPanel when settings change
+  useEffect(() => {
+    if (selectedInstrument) {
+      setInstrumentSettings((prev) => ({
+        ...prev,
+        [selectedInstrument]: settings,
+      }));
+    }
+  }, [settings, selectedInstrument]);
+
   const handleInstrumentSelect = (instrumentValue: string) => {
     setSelectedInstrument(instrumentValue);
-    // Reset selected lines when instrument changes
     setSelectedLines([]);
-    // Reset settings
-    setSettings({});
-
-    // Check if it's a custom instrument
-    const customInstrument = customInstruments.find(
-      (inst) => inst.name === instrumentValue
-    );
-    if (customInstrument) {
-      // Set settings based on custom instrument functions
-      let initialSettings: InstrumentSettings = {
-        functions: customInstrument.functions,
-      };
-      customInstrument.functions.forEach((func) => {
-        console.log("func", func);
-        if (func.type === "sizeScaling") {
-          initialSettings.sizeScaleFactor = func.settings;
-        } else if (func.type === "boldThreshold") {
-          initialSettings.boldThreshold = func.settings;
-        } else if (func.type === "animationSpeedScaling") {
-          initialSettings.animationSpeedFactor = func.settings;
-        }
-      });
-      setSettings(initialSettings);
-    } else {
-      // Handle predefined instruments
-      // Set default settings based on the instrument
-      if (instrumentValue === "boldThreshold") {
-        setSettings({
-          boldThreshold: globalRegulator.impBoldThreshold,
-          selectedAnimation: AnimationPresets[0],
-        });
-      } else if (instrumentValue === "sizeScaling") {
-        setSettings({
-          sizeScaleFactor: globalRegulator.impEnlargeFactor,
-          selectedAnimation: AnimationPresets[0],
-        });
-      } else if (instrumentValue === "animationSpeedScaling") {
-        setSettings({
-          animationSpeedFactor: globalRegulator.impAnimSlowFactor,
-          selectedAnimation: AnimationPresets[0],
-        });
-      }
-    }
   };
 
   const handleAddInstrument = () => {
@@ -176,7 +174,7 @@ export default function LyricalInstrumentsTab({
     setSelectedFunctions(instrument.functions.map((func) => func.type));
     const settings = {} as any;
     instrument.functions.forEach((func) => {
-      settings[func.type] = func.settings;
+      settings[func.type] = func.value;
     });
     setNewInstrumentSettings(settings);
     setShowCreateInstrument(true);
@@ -192,7 +190,7 @@ export default function LyricalInstrumentsTab({
     onChangeCustomInstruments(newInstruments);
     if (selectedInstrument === instrumentName) {
       setSelectedInstrument("");
-      setSettings({});
+      // setSettings({});
       setSelectedLines([]);
     }
   };
@@ -237,7 +235,7 @@ export default function LyricalInstrumentsTab({
       name: newInstrumentName,
       functions: selectedFunctions.map((funcType) => ({
         type: funcType,
-        settings: newInstrumentSettings[funcType],
+        value: newInstrumentSettings[funcType],
       })),
     };
     console.log("[handleCreateIns] selectedFunctions", selectedFunctions);
@@ -298,17 +296,17 @@ export default function LyricalInstrumentsTab({
         );
         custom?.functions.forEach((func) => {
           if (func.type === "boldThreshold" && setting === "boldThreshold") {
-            func.settings = value as number;
+            func.value = value as number;
           } else if (
             func.type === "sizeScaling" &&
             setting === "sizeScaleFactor"
           ) {
-            func.settings = value as number;
+            func.value = value as number;
           } else if (
             func.type === "animationSpeedScaling" &&
             setting === "animationSpeedFactor"
           ) {
-            func.settings = value as number;
+            func.value = value as number;
           }
         });
       }
@@ -488,6 +486,21 @@ export default function LyricalInstrumentsTab({
                 />
               </Box>
             )}
+
+            {selectedFunctions.includes("colorChange") && (
+              <Box marginTop={2}>
+                <Typography>Define Color Change Cutpoints</Typography>
+                <ColorChangeCutpointsEditor
+                  cutpoints={newInstrumentSettings.colorChangeCutpoints || []}
+                  onCutpointsChange={(newCutpoints) => {
+                    setNewInstrumentSettings({
+                      ...newInstrumentSettings,
+                      colorChangeCutpoints: newCutpoints,
+                    });
+                  }}
+                />
+              </Box>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setShowCreateInstrument(false)}>
@@ -577,6 +590,26 @@ export default function LyricalInstrumentsTab({
               </Box>
             )}
 
+            {selectedInstrument === "colorChange" && (
+              <Box marginTop={2}>
+                <Typography variant="h6">
+                  Change text color based on importance thresholds.
+                </Typography>
+                <ColorChangeCutpointsEditor
+                  cutpoints={
+                    settings.colorChangeCutpoints ||
+                    globalRegulator.impColorChange
+                  }
+                  onCutpointsChange={(newCutpoints) => {
+                    setSettings({
+                      ...settings,
+                      colorChangeCutpoints: newCutpoints,
+                    });
+                  }}
+                />
+              </Box>
+            )}
+
             {/* Custom Instruments */}
             {customInstruments.find(
               (inst) => inst.name === selectedInstrument
@@ -587,7 +620,10 @@ export default function LyricalInstrumentsTab({
                     <Box marginTop={2} key="sizeScaling">
                       <Typography>Size Scale Factor</Typography>
                       <Slider
-                        value={settings.sizeScaleFactor || 1}
+                        value={
+                          settings.sizeScaleFactor ||
+                          globalRegulator.impEnlargeFactor
+                        }
                         onChange={handleSliderChange("sizeScaleFactor")}
                         min={1}
                         max={3}
@@ -601,7 +637,10 @@ export default function LyricalInstrumentsTab({
                     <Box marginTop={2} key="boldThreshold">
                       <Typography>Bold Threshold</Typography>
                       <Slider
-                        value={settings.boldThreshold || 0.5}
+                        value={
+                          settings.boldThreshold ||
+                          globalRegulator.impBoldThreshold
+                        }
                         onChange={handleSliderChange("boldThreshold")}
                         min={0}
                         max={1}
@@ -615,11 +654,30 @@ export default function LyricalInstrumentsTab({
                     <Box marginTop={2} key="animationSpeedScaling">
                       <Typography>Animation Speed Factor</Typography>
                       <Slider
-                        value={settings.animationSpeedFactor || 1}
+                        value={
+                          settings.animationSpeedFactor ||
+                          globalRegulator.impAnimSlowFactor
+                        }
                         onChange={handleSliderChange("animationSpeedFactor")}
                         min={0.1}
                         max={2}
                         step={0.01}
+                      />
+                    </Box>
+                  );
+                }
+                if (func.type === "colorChange") {
+                  return (
+                    <Box marginTop={2} key="colorChange">
+                      <Typography>Define Color Change Cutpoints</Typography>
+                      <ColorChangeCutpointsEditor
+                        cutpoints={
+                          settings.colorChangeCutpoints ||
+                          globalRegulator.impColorChange
+                        }
+                        onCutpointsChange={(newCutpoints) => {
+                          applyCustomColorChange(newCutpoints);
+                        }}
                       />
                     </Box>
                   );
@@ -694,4 +752,70 @@ export default function LyricalInstrumentsTab({
       </Box>
     </Box>
   );
+
+  function applyCustomColorChange(newCutpoints: ColorChangeCutpoint[]) {
+    const sortedCutpoints = [...newCutpoints].sort(
+      (a, b) => a.threshold - b.threshold
+    );
+    setSettings({
+      ...settings,
+      colorChangeCutpoints: sortedCutpoints,
+    });
+    let custom = customInstruments.find(
+      (inst) => inst.name === selectedInstrument
+    );
+    if (custom) {
+      custom.functions.forEach((func) => {
+        if (func.type === "colorChange") {
+          func.value = sortedCutpoints;
+        }
+      });
+    }
+  }
+
+  function getDefaultSettings(instrumentValue: string): InstrumentSettings {
+    if (instrumentValue === "boldThreshold") {
+      return {
+        boldThreshold: globalRegulator.impBoldThreshold,
+        selectedAnimation: AnimationPresets[0],
+      };
+    } else if (instrumentValue === "sizeScaling") {
+      return {
+        sizeScaleFactor: globalRegulator.impEnlargeFactor,
+        selectedAnimation: AnimationPresets[0],
+      };
+    } else if (instrumentValue === "animationSpeedScaling") {
+      return {
+        animationSpeedFactor: globalRegulator.impAnimSlowFactor,
+        selectedAnimation: AnimationPresets[0],
+      };
+    } else if (instrumentValue === "colorChange") {
+      return {
+        colorChangeCutpoints: globalRegulator.impColorChange || [],
+        selectedAnimation: AnimationPresets[0],
+      };
+    }
+    // Default settings for custom instruments
+    const customInstrument = customInstruments.find(
+      (inst) => inst.name === instrumentValue
+    );
+    if (customInstrument) {
+      let initialSettings: InstrumentSettings = {
+        functions: customInstrument.functions,
+      };
+      customInstrument.functions.forEach((func) => {
+        if (func.type === "sizeScaling") {
+          initialSettings.sizeScaleFactor = func.value;
+        } else if (func.type === "boldThreshold") {
+          initialSettings.boldThreshold = func.value;
+        } else if (func.type === "animationSpeedScaling") {
+          initialSettings.animationSpeedFactor = func.value;
+        } else if (func.type === "colorChange") {
+          initialSettings.colorChangeCutpoints = func.value;
+        }
+      });
+      return initialSettings;
+    }
+    return {};
+  }
 }

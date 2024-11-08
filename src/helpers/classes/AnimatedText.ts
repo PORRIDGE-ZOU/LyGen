@@ -11,6 +11,7 @@ import { FabricObject, FabricText } from "fabric";
 import { LerpImportance, renderText, setText } from "../textRendering";
 import { AnimationProps } from "../types/index";
 import {
+  ColorChangeCutpoint,
   CustomInstrument,
   InstrumentSettings,
 } from "@/components/LyricalInstrumentTab";
@@ -286,24 +287,44 @@ export class AnimatedText extends FabricObject {
       }
     } else if (this.instrument === "animationSpeedScaling") {
       duration = this.calcDurationFromImportance();
+    } else if (this.instrument === "colorChange") {
+      // TODO: Implement color change
+      let cutpoints = globalRegulator.impColorChange || [];
+      cutpoints = cutpoints.sort((a, b) => a.threshold - b.threshold);
+      for (let i = cutpoints.length - 1; i >= 0; i--) {
+        if (this.importance >= cutpoints[i].threshold) {
+          newColor = cutpoints[i].color;
+          break;
+        }
+      }
     } else if (
       this.customInstrument &&
       this.instrument == this.customInstrument.name
     ) {
       this.customInstrument.functions.forEach((func) => {
         if (func.type === "sizeScaling") {
-          scaleFactor = func.settings;
+          scaleFactor = func.value;
           scaleFactor = LerpImportance(1, scaleFactor, this.importance);
         } else if (func.type === "boldThreshold") {
-          if (this.importance >= func.settings) {
+          if (this.importance >= func.value) {
             shouldBold = true;
           }
         } else if (func.type === "animationSpeedScaling") {
           duration = LerpImportance(
             globalRegulator.defaultAnimDuration,
-            func.settings,
+            func.value,
             this.importance
           );
+        } else if (func.type === "colorChange") {
+          // HODO: Implement color change
+          let cutpoints = func.value as ColorChangeCutpoint[];
+          cutpoints = cutpoints.sort((a, b) => a.threshold - b.threshold);
+          for (let i = cutpoints.length - 1; i >= 0; i--) {
+            if (this.importance >= cutpoints[i].threshold) {
+              newColor = cutpoints[i].color;
+              break;
+            }
+          }
         }
       });
     }

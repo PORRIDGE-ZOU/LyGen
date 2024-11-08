@@ -4,6 +4,7 @@ import { FabricObject } from "fabric";
 import { PKeyframe } from "./types";
 import { AnimatedText } from "./classes/AnimatedText";
 import { LygenObject } from "./classes/LygenObject";
+import { ColorChangeCutpoint } from "@/components/LyricalInstrumentTab";
 
 /**
  * All the possible properties of an object
@@ -69,6 +70,7 @@ export const InstrumentList = [
   { name: "Size Scaling", value: "sizeScaling" },
   { name: "Animation Speed Scaling", value: "animationSpeedScaling" },
   // Add more instruments as needed
+  { name: "Color Change", value: "colorChange" },
 ];
 
 export const DefaultInstrumentList = [
@@ -76,6 +78,7 @@ export const DefaultInstrumentList = [
   { name: "Size Scaling", value: "sizeScaling" },
   { name: "Animation Speed Scaling", value: "animationSpeedScaling" },
   // Add more instruments as needed
+  { name: "Color Change", value: "colorChange" },
 ];
 
 // make a global ticker to keep track of the current time and current index
@@ -92,6 +95,7 @@ class GlobalRegulator {
    */
   public static impRGBColor = [255, 255, 255];
   public static impBoldThreshold = 0.8;
+  public static impColorChange: ColorChangeCutpoint[] = [];
   public static defaultFont = "Oswald";
   public static defaultAnimDuration = 500;
 

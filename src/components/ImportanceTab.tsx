@@ -74,12 +74,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   }
   useEffect(() => {
     const importance = lineImportance[selectedLineIndex];
-    console.log(
-      "Selected line index:",
-      selectedLineIndex,
-      lineImportance,
-      importance
-    );
     if (importance) {
       if (!arraysEqual(importanceValues, importance)) {
         isUpdatingFromParent.current = true;
@@ -137,7 +131,6 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   }
 
   const lyricsLineSelect = (e: SelectChangeEvent<number>) => {
-    console.log("Selected line index:", e.target.value);
     setSelectedLineIndex(e.target.value as number);
     onLyricsLineSelect(e.target.value as number);
   };
@@ -311,7 +304,7 @@ const ImportanceTab: React.FC<ImportanceTabProps> = ({
   }
 
   function renderYAxis() {
-    const yAxisValues = [0, 0.25, 0.5, 0.75, 1]; // Define the y-axis labels
+    const yAxisValues = [0.01, 0.25, 0.5, 0.75, 1]; // Define the y-axis labels
     return yAxisValues.map((value, index) => (
       <g key={index}>
         {/* Horizontal grid line */}

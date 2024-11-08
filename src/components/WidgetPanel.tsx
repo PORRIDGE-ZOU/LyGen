@@ -22,14 +22,16 @@ export default function WidgetPanel({
   reAnimate,
 }: WidgetPanelProps) {
   const [activeTab, setActiveTab] = useState(0);
+  const [selectedInstrument, setSelectedInstrument] = useState<string>("");
+  const [instrumentSettings, setInstrumentSettings] = useState<{
+    [instrument: string]: InstrumentSettings;
+  }>({});
   const [lineInstruments, setLineInstruments] = useState<{
     [key: number]: string;
   }>({});
   const [lineImportance, setLineImportance] = useState<{
     [key: number]: number[];
   }>({});
-  const [instrumentSettings, setInstrumentSettings] =
-    useState<InstrumentSettings>({});
   const [customInstruments, setCustomInstruments] = useState<
     CustomInstrument[]
   >([]);
@@ -202,23 +204,36 @@ export default function WidgetPanel({
       // Apply animation speed scaling logic
       globalRegulator.impAnimSlowFactor = settings.animationSpeedFactor;
     }
-    let customFunctions = settings.functions;
-    // Apply custom functions
-    if (customFunctions) {
-      customFunctions.forEach((customFunction) => {
-        console.log("Found custom function:", customFunction);
-        // Apply custom function logic
-        if (customFunction.type === "boldThreshold") {
-          globalRegulator.impBoldThreshold = customFunction.settings as number;
-        }
-        if (customFunction.type === "sizeScaling") {
-          globalRegulator.impEnlargeFactor = customFunction.settings as number;
-        }
-        if (customFunction.type === "animationSpeedScaling") {
-          globalRegulator.impAnimSlowFactor = customFunction.settings as number;
-        }
-      });
+    if (
+      instrument === "colorChange" &&
+      settings.colorChangeCutpoints !== undefined
+    ) {
+      globalRegulator.impColorChange = settings.colorChangeCutpoints;
     }
+    // Code below HAS NO USE! See TODO.txt for more info. --GEORGE
+    // let customFunctions = settings.functions;
+    // // Apply custom functions
+    // if (customFunctions) {
+    //   customFunctions.forEach((customFunction) => {
+    //     console.log("Found custom function:", customFunction);
+    //     // Apply custom function logic
+    //     if (customFunction.type === "boldThreshold") {
+    //       globalRegulator.impBoldThreshold = customFunction.value as number;
+    //     }
+    //     if (customFunction.type === "sizeScaling") {
+    //       globalRegulator.impEnlargeFactor = customFunction.value as number;
+    //     }
+    //     if (customFunction.type === "animationSpeedScaling") {
+    //       globalRegulator.impAnimSlowFactor = customFunction.value as number;
+    //     }
+    //     if (customFunction.type === "colorChange") {
+    //       // TODO: Apply color change logic
+    //       // You can access customFunction.value.colorChangeCutpoints here
+    //       globalRegulator.impColorChange =
+    //         customFunction.value.colorChangeCutpoints;
+    //     }
+    //   });
+    // }
 
     // Apply the settings to the selected lines
     selectedLines.forEach((lineIndex) => {
@@ -371,6 +386,10 @@ export default function WidgetPanel({
             lineInstruments={lineInstruments}
             lyrics={currentLyrics}
             customInstruments={customInstruments}
+            selectedInstrument={selectedInstrument}
+            setSelectedInstrument={setSelectedInstrument}
+            instrumentSettings={instrumentSettings}
+            setInstrumentSettings={setInstrumentSettings}
           />
         )}
         {activeTab === 2 && (

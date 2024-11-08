@@ -1,0 +1,8 @@
+TODOs:
+- Now, custom instruments and default ones are intertwined. That is,
+if you change something in custom instrument, it will also affect the default value 
+of the default instrument. This is because they are both assigned to the same globalRegulator values.
+Although InstrumentSettings has a "functions" property for custom functions, 
+now we are always setting both the default values in InsSettings and InsSettings.functions.
+That means now there's no usage separating them then. In handleApplyInstrument, we also 
+interchangeably use the default values and custom values. This is not good.
