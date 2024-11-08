@@ -92,7 +92,7 @@ class GlobalRegulator {
    */
   public static impRGBColor = [255, 255, 255];
   public static impBoldThreshold = 0.8;
-  public static defaultFont = "Cormorant Garamond";
+  public static defaultFont = "Impact";
   public static defaultAnimDuration = 500;
 
   public static setCurrentTime(time: number): void {

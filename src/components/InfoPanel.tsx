@@ -29,7 +29,7 @@ const InfoPanel = ({
       <Typography variant="h6">Information</Typography>
       <TextField
         id="textXPos"
-        label="XPos"
+        label="X Position"
         type="number"
         value={activeXPos}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,7 +41,7 @@ const InfoPanel = ({
       />
       <TextField
         id="textYPos"
-        label="YPos"
+        label="Y Position"
         type="number"
         value={activeYPos}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {

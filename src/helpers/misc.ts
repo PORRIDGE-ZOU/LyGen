@@ -7,8 +7,10 @@ import {
   globalRegulator,
   AllLyrics,
 } from "./globals";
-import { newLayer } from "@/app/page";
 import { AnimatedText } from "./classes/AnimatedText";
+import anime from "animejs";
+import { PKeyframe } from "./types";
+import { newLayer } from "./textRendering";
 
 // Deselect and reselect an object
 export function reselect(selection: FabricObject, canvas: fabric.Canvas) {
@@ -248,6 +250,128 @@ export function setPropsToAnimText(
   animText.props.top = text.top!;
   animText.props.scaleX = text.scaleX!;
   animText.props.scaleY = text.scaleY!;
+}
+
+export function newAudioLayer(src: string, canvas: fabric.Canvas) {
+  var audio = new Audio(src);
+  audio.crossOrigin = "anonymous";
+  audio.addEventListener("loadeddata", () => {
+    var nullobject = new fabric.Rect({
+      id: "Audio" + globalRegulator.getAndUpdateCurrentIndex(),
+      width: 10,
+      height: 10,
+      audioSrc: src,
+      duration: audio.duration * 1000,
+      opacity: 0,
+      selectable: false,
+      volume: 0.5,
+      assetType: "audio",
+    });
+    canvas.add(nullobject);
+    newLayer(
+      nullobject,
+      AllObjects,
+      P_Keyframes,
+      canvas,
+      audio.duration * 1000,
+      0
+    );
+    canvas.renderAll();
+  });
+}
+
+// Play background audio
+export function playAudio(
+  time: number,
+  objects: fabric.Object[],
+  canvas: fabric.Canvas,
+  p_keyframes: PKeyframe[],
+  currenttime: number,
+  duration: number
+) {
+  objects.forEach(async function (object) {
+    var start = false;
+    var obj = canvas.getItemById(object.id);
+    if (!obj) {
+      console.log("[playAudio] object not found");
+      return;
+    }
+    if (obj.get("assetType") == "audio") {
+      console.log("[playAudio] audio object found");
+      var flag = false;
+      var animation = {
+        value: 0,
+      };
+      var instance = anime({
+        targets: animation,
+        value: [currenttime, duration],
+        delay: 0,
+        duration: duration,
+        easing: "linear",
+        autoplay: true,
+        update: async function () {
+          currenttime = animation.value;
+          if (start && !globalRegulator.paused) {
+            let this_pkey = p_keyframes.find((x) => x.id == object.id);
+            if (!this_pkey) {
+              return;
+            }
+            if (!obj) {
+              return; // just for preventing IDE error
+            }
+            if (
+              !flag &&
+              this_pkey.start <= currenttime &&
+              this_pkey.end >= currenttime
+            ) {
+              if (obj.get("src")) {
+                obj.get("src").currentTime =
+                  (this_pkey.trimstart - this_pkey.start + currenttime) / 1000;
+                obj.get("src").volume = obj.get("volume");
+                obj.get("src").play();
+                flag = true;
+              } else {
+                var audio = new Audio(obj.get("audioSrc"));
+                obj.set("src", audio);
+                audio.volume = obj.get("volume");
+                audio.crossOrigin = "anonymous";
+                audio.currentTime =
+                  (this_pkey.trimstart - this_pkey.start + currenttime) / 1000;
+                audio.play();
+                flag = true;
+
+                console.log("[playAudio] now playing audio src");
+              }
+            } else if (
+              this_pkey.start >= currenttime ||
+              this_pkey.end <= currenttime
+            ) {
+              if (obj.get("src")) {
+                console.log(
+                  "[playAudio] pausing audio 1 (I commented this out)"
+                );
+                obj.get("src").pause();
+                // this original code seems to try to prevent the audio from multi-playing by setting flag = true. It does not work now, however -- it only pauses the active audio. --GEORGE
+              }
+            }
+          } else if (globalRegulator.paused) {
+            console.log("[playAudio] now pausing audio");
+            if (!obj) {
+            } else {
+              if (obj.get("src")) {
+                console.log("[playAudio] pausing audio 2");
+                obj.get("src").pause();
+                anime.remove(animation);
+              }
+            }
+          }
+        },
+        changeBegin: function () {
+          start = true;
+        },
+      });
+    }
+  });
 }
 
 export function rgbToNumber(r: number, g: number, b: number) {
