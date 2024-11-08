@@ -118,7 +118,7 @@ export default function LyricalInstrumentsTab(
   const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
   /**
    * Instrument Settings, SHOULD FOLLOW The Instrument Value naming
-   * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'
+   * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling', 'colorChange'
    */
   const [newInstrumentSettings, setNewInstrumentSettings] = useState<any>({});
   const [instrumentToEdit, setInstrumentToEdit] =
