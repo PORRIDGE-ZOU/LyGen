@@ -28,6 +28,12 @@ import InfoPanel from "@/components/InfoPanel";
 import { newAudioLayer, reselect, setPropsToAnimText } from "@/helpers/misc";
 import { animate } from "@/helpers/animation";
 import { AnimatedText } from "@/helpers/classes/AnimatedText";
+import "@fontsource/roboto"; // Defaults to weight 400
+import "@fontsource/open-sans"; // Defaults to weight 400
+import "@fontsource/lato"; // Defaults to weight 400
+import "@fontsource/montserrat"; // Defaults to weight 400
+import "@fontsource/oswald"; // Defaults to weight 400
+import "@fontsource/source-sans-pro"; // Defaults to weight 400
 
 // ------------------ MAIN COMPONENT ------------------
 const App = () => {
@@ -65,6 +71,7 @@ const App = () => {
     canvas.selectionColor = "rgba(46, 115, 252, 0.11)";
     canvas.selectionBorderColor = "rgba(98, 155, 255, 0.81)";
     canvas.selectionLineWidth = 1.5;
+    canvas.getContext().font = "20px " + globalRegulator.defaultFont;
     // Get any object by ID
     Canvas.prototype.getItemById = function (name) {
       var object = null;
