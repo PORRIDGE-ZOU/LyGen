@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+./musixmatch_token.json
+server/.syncedlyrics/musixmatch_token.json
