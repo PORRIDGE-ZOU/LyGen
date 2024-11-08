@@ -16,7 +16,7 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-# NOTE: To use the "Search Lyrics" function, you need to run the server file locally. Please refer to the "Use Server" section.
+### NOTE: To use the "Search Lyrics" function, you need to run the server file locally. Please refer to the "Use Server" section.
 
 ## Run Locally
 
