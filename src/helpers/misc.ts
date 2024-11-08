@@ -18,6 +18,7 @@ export function reselect(selection: FabricObject, canvas: fabric.Canvas) {
     console.warn("[reselect] selection is undefined. May be some error.");
     return;
   }
+  canvas.discardActiveObject();
   if (selection.get("type") == "activeSelection") {
     var objs = [];
     for (let so of (selection as fabric.ActiveSelection)._objects) {

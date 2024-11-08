@@ -70,7 +70,7 @@ const InfoPanel = ({
   };
 
   return (
-    <Container>
+    <Container style={{ width: "240px" }}>
       <Typography variant="h6">Information</Typography>
       <TextField
         id="textXPos"

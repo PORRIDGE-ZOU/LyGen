@@ -37,7 +37,9 @@ const App = () => {
   const [fillcolor, setFillColor] = useState("#ffffff");
   const [activeXPos, setActiveXPos] = useState<number>(0);
   const [activeYPos, setActiveYPos] = useState<number>(0);
-  const [activeFont, setActiveFont] = useState<string>("Impact");
+  const [activeFont, setActiveFont] = useState<string>(
+    globalRegulator.defaultFont
+  );
   const [lyrics, setLyrics] = useState<string>("Test Lyrics\nTest Lyrics2");
   const [lyrics_forWidget, setLyrics_forWidget] = useState<string[][]>([]);
   /** This is only used for rerendering GeneralPanel. */
@@ -124,7 +126,6 @@ const App = () => {
   function canvasSetup(canvas: fabric.Canvas) {
     canvas.on("selection:created", (e) => {
       let active = canvas.getActiveObject();
-      let selected = e.selected;
       if (!active) {
         return;
       }
@@ -173,6 +174,17 @@ const App = () => {
       let y = Math.round(active.get("top")!);
       setActiveXPos(x!);
       setActiveYPos(y!);
+      let text = active?.get("text");
+      if (text) {
+        console.log(
+          "[canvasSetup] selection updated active text: ",
+          text,
+          "active font: ",
+          active?.get("fontFamily")
+        );
+        setActiveFont(active?.get("fontFamily")!);
+      } else {
+      }
     });
 
     canvas.on("object:moving", (e) => {
@@ -285,7 +297,32 @@ const App = () => {
     // canvas?.discardActiveObject();
   }
 
-  function handleFontChange(font: string) {}
+  function handleFontChange(font: string) {
+    let active = canvas?.getActiveObject();
+    if (!active) {
+      return;
+    }
+
+    // Check if it's a group selection or a single object
+    if (active.get("type") === "activeselection") {
+      let objects = (active as fabric.Group).getObjects();
+      objects.forEach((object) => {
+        object.set({ fontFamily: font });
+      });
+    } else {
+      active?.set({ fontFamily: font });
+    }
+
+    setActiveFont(font);
+    animate(
+      false,
+      globalRegulator.currentTime - 0.01,
+      canvas!,
+      AllObjects,
+      P_Keyframes,
+      videoDuration
+    );
+  }
 
   const onChangeVideoDuration = (
     event: React.ChangeEvent<HTMLInputElement>

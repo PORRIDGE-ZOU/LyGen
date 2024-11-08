@@ -39,3 +39,5 @@ next-env.d.ts
 src/server/.syncedlyrics/musixmatch_token.json
 src/server/.syncedlyrics/api.txt
 src/server/.syncedlyrics/musixmatch_token.json
+src/server/.syncedlyrics/musixmatch_token.json
+src/server/.syncedlyrics/*

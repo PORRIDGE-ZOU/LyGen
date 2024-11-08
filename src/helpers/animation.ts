@@ -9,8 +9,8 @@ import {
 import { AnimationProps, PKeyframe } from "./types/index";
 import { LygenObject } from "./classes/LygenObject";
 import * as fabric from "fabric";
-import { playAudio } from "@/app/page";
 import { FabricText } from "fabric";
+import { playAudio } from "./misc";
 
 /** Animate timeline (or seek to specific point in time)
  * @NOTE This function is NOT related to currenttime. Set it separately.
@@ -36,9 +36,9 @@ export async function animate(
     if (canvas == null) {
       // NOTE: Now this will print BEFORE Canvas is initialized. I don't know why. -- GEORGE
       console.log("[animate] Canvas is null");
+      return;
     }
     updateObjectVisibility(objects, canvas, p_keyframes, currenttime, duration);
-
     // HANDLE ANIMATED TEXT
     updateAnimatedTexts(currenttime, canvas);
     canvas?.renderAll();
