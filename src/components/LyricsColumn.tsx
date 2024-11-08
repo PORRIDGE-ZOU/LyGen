@@ -1,49 +1,85 @@
-import React, { useRef, useState } from "react";
-import { Box, TextField, Button, Typography } from "@mui/material";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Typography } from "@mui/material";
+import { makeStyles } from "@mui/styles";
 
+const useStyles = makeStyles({
+  root: {
+    overflowY: "auto",
+    maxHeight: "45vh", // Set a fixed height to prevent overflow
+    width: "100%",
+    padding: "10px",
+    boxSizing: "border-box",
+  },
+  line: {
+    padding: "8px 12px",
+    margin: "4px 0",
+    cursor: "pointer",
+    userSelect: "text",
+    whiteSpace: "pre-wrap",
+    textAlign: "center",
+    overflowWrap: "break-word",
+    borderRadius: "5px",
+    transition: "background-color 0.3s",
+    "&:hover": {
+      backgroundColor: "#f0f0f0",
+    },
+  },
+  selectedLine: {
+    backgroundColor: "#d0d0d0",
+    fontWeight: "bold",
+  },
+});
 interface LyricsColumnProps {
-  onLyricsChange: (lyrics: string[]) => void;
-  lyrics: string;
-  setLyrics: (lyrics: string) => void;
+  lyrics: string[][];
+  onLineClick: (lineIndex: number) => void;
 }
 
-const LyricsColumn = ({
-  onLyricsChange,
-  lyrics,
-  setLyrics,
-}: LyricsColumnProps) => {
-  // const [lyrics, setLyrics] = useState<string>(
-  //   "See the sunset\nThe day is ending"
-  // );
+const LyricsColumn = ({ lyrics, onLineClick }: LyricsColumnProps) => {
+  const classes = useStyles();
+  const [selectedLineIndex, setSelectedLineIndex] = useState<number | null>(
+    null
+  );
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLyrics(event.target.value);
+  const selectedLineRef = useRef<HTMLDivElement | null>(null);
+
+  const handleLineClick = (index: number) => {
+    setSelectedLineIndex(index);
+    onLineClick(index);
   };
 
-  const addInput = () => {
-    const separatedLines = lyrics.split("\n");
-    onLyricsChange(separatedLines);
-    console.log(
-      "[LyricsColumn] calling changeLyrics. lyrics: ",
-      separatedLines
-    );
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter") {
+      console.log("Return key pressed");
+      // Future functionality: Split the line or create a new panel
+    } else if (event.key === " ") {
+      console.log("Space key pressed");
+      // Handle Space key if needed
+    }
   };
+
+  useEffect(() => {
+    if (selectedLineRef.current) {
+      selectedLineRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [selectedLineIndex]);
 
   return (
-    <Box>
-      <TextField
-        label="Lyrics"
-        variant="outlined"
-        margin="normal"
-        fullWidth
-        multiline
-        rows={15} // Adjust the number of rows as needed for a big input box
-        onChange={handleInputChange}
-        value={lyrics}
-      />
-      {/* <Button variant="contained" color="primary" onClick={addInput}>
-        Render
-      </Button> */}
+    <Box className={classes.root} tabIndex={0} onKeyDown={handleKeyDown}>
+      {lyrics.map((lineWords, index) => (
+        <div
+          key={index}
+          className={`${classes.line} ${
+            selectedLineIndex === index ? classes.selectedLine : ""
+          }`}
+          onClick={() => handleLineClick(index)}
+          ref={selectedLineIndex === index ? selectedLineRef : null}
+        >
+          {lineWords.join(" ")}
+        </div>
+      ))}
     </Box>
   );
 };

@@ -25,7 +25,12 @@ import LyricSearch from "@/components/LyricsSearch";
 import GeneralPanel from "@/components/GeneralPanel";
 import WidgetPanel from "@/components/WidgetPanel";
 import InfoPanel from "@/components/InfoPanel";
-import { newAudioLayer, reselect, setPropsToAnimText } from "@/helpers/misc";
+import {
+  getLineFromIndex,
+  newAudioLayer,
+  reselect,
+  setPropsToAnimText,
+} from "@/helpers/misc";
 import { animate } from "@/helpers/animation";
 import { AnimatedText } from "@/helpers/classes/AnimatedText";
 import "@fontsource/roboto"; // Defaults to weight 400
@@ -418,6 +423,18 @@ const App = () => {
     );
   };
 
+  // Function to handle line clicks from LyricsColumn
+  const handleLineClick = (lineIndex: number) => {
+    let line = getLineFromIndex(lineIndex);
+    if (line === undefined) {
+      return;
+    }
+    let lastText = line[line.length - 1];
+    let seekTime = lastText.textFabricObject!.get("starttime");
+    globalRegulator.setCurrentTime(seekTime);
+    animate(false, seekTime, canvas!, AllObjects, P_Keyframes, videoDuration);
+  };
+
   // ------------------ RENDER ------------------
   return (
     <Container
@@ -428,9 +445,8 @@ const App = () => {
       <Box display="flex" flexDirection="row" width="100%" height="65%">
         <Box width="25%">
           <LyricsColumn
-            onLyricsChange={() => {}}
-            lyrics={lyrics}
-            setLyrics={setLyrics}
+            lyrics={lyrics_forWidget}
+            onLineClick={handleLineClick}
           />
           <LyricSearch onLyricsSearchSuccess={onLyricsSearchSuccess} />
         </Box>

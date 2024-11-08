@@ -19,6 +19,7 @@
     "@fontsource/source-sans-pro": "^5.1.0",
     "@mui/icons-material": "^5.16.6",
     "@mui/material": "^5.16.7",
+    "@mui/styles": "^6.1.6",
     "animejs": "^3.2.2",
     "d3-cloud": "^1.2.7",
     "d3-scale": "^4.0.2",
