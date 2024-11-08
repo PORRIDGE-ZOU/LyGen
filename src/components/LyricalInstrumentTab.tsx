@@ -74,7 +74,7 @@ export interface CustomInstrument {
 /**
  * This is used for custom instruments.
  * type: Type of the function, SHOULD FOLLOW THE Instrument Value naming
- * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling'.
+ * 'sizeScaling', 'boldThreshold', 'animationSpeedScaling', 'colorChange'
  * settings: Value of the function
  */
 export interface CustomFunction {
@@ -491,11 +491,11 @@ export default function LyricalInstrumentsTab(
               <Box marginTop={2}>
                 <Typography>Define Color Change Cutpoints</Typography>
                 <ColorChangeCutpointsEditor
-                  cutpoints={newInstrumentSettings.colorChangeCutpoints || []}
+                  cutpoints={newInstrumentSettings.colorChange || []}
                   onCutpointsChange={(newCutpoints) => {
                     setNewInstrumentSettings({
                       ...newInstrumentSettings,
-                      colorChangeCutpoints: newCutpoints,
+                      colorChange: newCutpoints,
                     });
                   }}
                 />

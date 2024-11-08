@@ -44,10 +44,6 @@ const ColorChangeCutpointsEditor: React.FC<ColorChangeCutpointsEditorProps> = ({
     onCutpointsChange(newCutpoints);
   };
 
-  useEffect(() => {
-    console.log("Cutpoint CHANGE:" + cutpoints);
-  }, [cutpoints]);
-
   return (
     <Box>
       {cutpoints.map((cutpoint, index) => (
